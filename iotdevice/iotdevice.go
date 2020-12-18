@@ -11,13 +11,26 @@ type IotDevice interface {
 	Init() bool
 	IsConnected() bool
 	SendMessage(message Message) bool
+	AddMessageHandler(handler MessageHandler)
+}
+
+type MessageHandler interface {
+	Handle(message Message)
 }
 
 type iotDevice struct {
-	Id       string
-	Password string
-	Servers  string
-	client   mqtt.Client
+	Id              string
+	Password        string
+	Servers         string
+	client          mqtt.Client
+	messageHandlers []MessageHandler
+	messageDownTopic string
+}
+
+
+
+func handle(client mqtt.Client,message mqtt.Message)  {
+
 }
 
 func (device *iotDevice) Init() bool {
@@ -33,6 +46,9 @@ func (device *iotDevice) Init() bool {
 		fmt.Printf("IoT device init failed,caulse %s\n", token.Error())
 		return false
 	}
+
+	// todo subscribe default topic
+	device.client.Subscribe(device.messageDownTopic,2,handle)
 	return true
 
 }
@@ -59,6 +75,13 @@ func (device *iotDevice) SendMessage(message Message) bool {
 	return true
 }
 
+func (device *iotDevice) AddMessageHandler(handler MessageHandler) {
+	if handler == nil {
+		return
+	}
+	device.messageHandlers = append(device.messageHandlers, handler)
+}
+
 func assembleClientId(device *iotDevice) string {
 	segments := make([]string, 4)
 	segments[0] = device.Id
@@ -74,5 +97,8 @@ func CreateIotDevice(id, password, servers string) IotDevice {
 	device.Id = id
 	device.Password = password
 	device.Servers = servers
+	device.messageHandlers = []MessageHandler{}
+	device.messageDownTopic = strings.ReplaceAll("$oc/devices/{device_id}/sys/messages/down","{device_id}", "id")
+
 	return device
 }
