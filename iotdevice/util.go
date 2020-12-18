@@ -34,3 +34,7 @@ func JsonString(v interface{}) string {
 func CommandRequestId(topic string) string {
 	return strings.Split(topic, "=")[1]
 }
+
+func TopicFormat(topic, deviceId string) string {
+	return strings.ReplaceAll(topic, "{device_id}", deviceId)
+}

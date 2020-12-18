@@ -20,20 +20,17 @@ type IotMessageHandler interface {
 	Handle(message IotMessage)
 }
 
-
 type iotDevice struct {
-	Id                   string
-	Password             string
-	Servers              string
-	commandHandlers      []handlers.IotCommandHandler
-	client               mqtt.Client
-	messageHandlers      []IotMessageHandler
-	messageDownTopic     string
-	commandDownTopic     string
-	commandResponseTopic string
+	Id              string
+	Password        string
+	Servers         string
+	commandHandlers []handlers.IotCommandHandler
+	client          mqtt.Client
+	messageHandlers []IotMessageHandler
+	topics          map[string]string
 }
 
-func (device *iotDevice) createCommandMqttHandler() func(client mqtt.Client, message mqtt.Message)  {
+func (device *iotDevice) createCommandMqttHandler() func(client mqtt.Client, message mqtt.Message) {
 	commandHandler := func(client mqtt.Client, message mqtt.Message) {
 		command := &handlers.IotCommand{}
 		if json.Unmarshal(message.Payload(), command) != nil {
@@ -50,7 +47,7 @@ func (device *iotDevice) createCommandMqttHandler() func(client mqtt.Client, mes
 		} else {
 			res = JsonString(handlers.FailedIotCommandResponse())
 		}
-		if token := device.client.Publish(device.commandResponseTopic+CommandRequestId(message.Topic()), 1, false, res);
+		if token := device.client.Publish(device.topics[CommandResponseTopicName]+CommandRequestId(message.Topic()), 1, false, res);
 			token.Wait() && token.Error() != nil {
 			fmt.Println("send command response success")
 		}
@@ -73,7 +70,7 @@ func (device *iotDevice) Init() bool {
 		return false
 	}
 
-	subscirbeToken := device.client.Subscribe(device.commandDownTopic, 2, device.createCommandMqttHandler())
+	subscirbeToken := device.client.Subscribe(device.topics[CommandDownTopicName], 2, device.createCommandMqttHandler())
 	if subscirbeToken.Wait() && subscirbeToken.Error() != nil {
 		fmt.Println(len(subscirbeToken.Error().Error()))
 		fmt.Println("subscribe failed")
@@ -139,9 +136,12 @@ func CreateIotDevice(id, password, servers string) IotDevice {
 	device.Servers = servers
 	device.messageHandlers = []IotMessageHandler{}
 	device.commandHandlers = []handlers.IotCommandHandler{}
-	device.messageDownTopic = strings.ReplaceAll("$oc/devices/{device_id}/sys/messages/down", "{device_id}", id)
-	device.commandDownTopic = strings.ReplaceAll("$oc/devices/{device_id}/sys/commands/#", "{device_id}", id)
-	device.commandResponseTopic = strings.ReplaceAll("$oc/devices/{device_id}/sys/commands/response/request_id=", "{device_id}", id)
+
+	// 初始化设备相关的所有topic
+	device.topics = make(map[string]string)
+	device.topics[MessageDownTopicName] = TopicFormat(MessageDownTopic, id)
+	device.topics[CommandDownTopicName] = TopicFormat(CommandDownTopic, id)
+	device.topics[CommandResponseTopicName] = TopicFormat(CommandResponseTopic, id)
 
 	return device
 }
