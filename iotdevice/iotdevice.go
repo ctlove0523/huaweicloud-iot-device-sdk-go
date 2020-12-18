@@ -10,27 +10,55 @@ import (
 type IotDevice interface {
 	Init() bool
 	IsConnected() bool
-	SendMessage(message Message) bool
-	AddMessageHandler(handler MessageHandler)
+	SendMessage(message IotMessage) bool
+	AddMessageHandler(handler IotMessageHandler)
+	AddCommandHandler(handler IotCommandHandler)
 }
 
-type MessageHandler interface {
-	Handle(message Message)
+type IotMessageHandler interface {
+	Handle(message IotMessage)
+}
+
+type IotCommandHandler interface {
+	HandleCommand(message IotCommand) bool
 }
 
 type iotDevice struct {
-	Id              string
-	Password        string
-	Servers         string
-	client          mqtt.Client
-	messageHandlers []MessageHandler
-	messageDownTopic string
+	Id                   string
+	Password             string
+	Servers              string
+	commandHandlers      []IotCommandHandler
+	client               mqtt.Client
+	messageHandlers      []IotMessageHandler
+	messageDownTopic     string
+	commandDownTopic     string
+	commandResponseTopic string
 }
 
+func (device *iotDevice) createCommandMqttHandler() func(client mqtt.Client, message mqtt.Message)  {
+	commandHandler := func(client mqtt.Client, message mqtt.Message) {
+		command := &IotCommand{}
+		if json.Unmarshal(message.Payload(), command) != nil {
+			fmt.Println("unmarshal failed")
+		}
 
+		handleFlag := true
+		for _, handler := range device.commandHandlers {
+			handleFlag = handleFlag && handler.HandleCommand(*command)
+		}
+		var res string
+		if handleFlag {
+			res = JsonString(SuccessIotCommandResponse())
+		} else {
+			res = JsonString(FailedIotCommandResponse())
+		}
+		if token := device.client.Publish(device.commandResponseTopic+CommandRequestId(message.Topic()), 1, false, res);
+			token.Wait() && token.Error() != nil {
+			fmt.Println("send command response success")
+		}
+	}
 
-func handle(client mqtt.Client,message mqtt.Message)  {
-
+	return commandHandler
 }
 
 func (device *iotDevice) Init() bool {
@@ -47,8 +75,14 @@ func (device *iotDevice) Init() bool {
 		return false
 	}
 
-	// todo subscribe default topic
-	device.client.Subscribe(device.messageDownTopic,2,handle)
+	subscirbeToken := device.client.Subscribe(device.commandDownTopic, 2, device.createCommandMqttHandler())
+	if subscirbeToken.Wait() && subscirbeToken.Error() != nil {
+		fmt.Println(len(subscirbeToken.Error().Error()))
+		fmt.Println("subscribe failed")
+	} else {
+		fmt.Println("subscribe success")
+	}
+
 	return true
 
 }
@@ -60,7 +94,7 @@ func (device *iotDevice) IsConnected() bool {
 	return false
 }
 
-func (device *iotDevice) SendMessage(message Message) bool {
+func (device *iotDevice) SendMessage(message IotMessage) bool {
 	topic := strings.Replace("$oc/devices/{device_id}/sys/messages/up", "{device_id}", device.Id, 1)
 	messageData, err := json.Marshal(message)
 	if err != nil {
@@ -75,11 +109,19 @@ func (device *iotDevice) SendMessage(message Message) bool {
 	return true
 }
 
-func (device *iotDevice) AddMessageHandler(handler MessageHandler) {
+func (device *iotDevice) AddMessageHandler(handler IotMessageHandler) {
 	if handler == nil {
 		return
 	}
 	device.messageHandlers = append(device.messageHandlers, handler)
+}
+
+func (device *iotDevice) AddCommandHandler(handler IotCommandHandler) {
+	if handler == nil {
+		return
+	}
+
+	device.commandHandlers = append(device.commandHandlers, handler)
 }
 
 func assembleClientId(device *iotDevice) string {
@@ -97,8 +139,11 @@ func CreateIotDevice(id, password, servers string) IotDevice {
 	device.Id = id
 	device.Password = password
 	device.Servers = servers
-	device.messageHandlers = []MessageHandler{}
-	device.messageDownTopic = strings.ReplaceAll("$oc/devices/{device_id}/sys/messages/down","{device_id}", "id")
+	device.messageHandlers = []IotMessageHandler{}
+	device.commandHandlers = []IotCommandHandler{}
+	device.messageDownTopic = strings.ReplaceAll("$oc/devices/{device_id}/sys/messages/down", "{device_id}", id)
+	device.commandDownTopic = strings.ReplaceAll("$oc/devices/{device_id}/sys/commands/#", "{device_id}", id)
+	device.commandResponseTopic = strings.ReplaceAll("$oc/devices/{device_id}/sys/commands/response/request_id=", "{device_id}", id)
 
 	return device
 }
