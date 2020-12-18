@@ -12,6 +12,7 @@ type IotDevice interface {
 	Init() bool
 	IsConnected() bool
 	SendMessage(message handlers.IotMessage) bool
+	ReportProperties(properties handlers.IotServiceProperty) bool
 	AddMessageHandler(handler handlers.IotMessageHandler)
 	AddCommandHandler(handler handlers.IotCommandHandler)
 }
@@ -121,6 +122,16 @@ func (device *iotDevice) SendMessage(message handlers.IotMessage) bool {
 	return true
 }
 
+func (device *iotDevice) ReportProperties(properties handlers.IotServiceProperty) bool {
+	propertiesData := JsonString(properties)
+	if token := device.client.Publish(device.topics[PropertiesUpTopicName], 2, false, propertiesData);
+		token.Wait() && token.Error() != nil {
+		fmt.Println("report properties failed")
+		return false
+	}
+	return true
+}
+
 func (device *iotDevice) AddMessageHandler(handler handlers.IotMessageHandler) {
 	if handler == nil {
 		return
@@ -160,6 +171,7 @@ func CreateIotDevice(id, password, servers string) IotDevice {
 	device.topics[CommandDownTopicName] = TopicFormat(CommandDownTopic, id)
 	device.topics[CommandResponseTopicName] = TopicFormat(CommandResponseTopic, id)
 	device.topics[MessageUpTopicName] = TopicFormat(MessageUpTopic, id)
+	device.topics[PropertiesUpTopicName] = TopicFormat(PropertiesUpTopic, id)
 
 	return device
 }

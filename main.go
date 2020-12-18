@@ -20,14 +20,35 @@ func main() {
 		return true
 	})
 
-	message:=handlers.IotMessage{
+	message := handlers.IotMessage{
 		ObjectDeviceId: "chen tong",
-		Name: "chen tong send message",
-		Id: "id",
-		Content: "hello platform",
+		Name:           "chen tong send message",
+		Id:             "id",
+		Content:        "hello platform",
 	}
 
 	device.SendMessage(message)
+
+	props := handlers.IotServiceProperty{
+		ServiceId: "value",
+		EventTime: "2020-12-19 02:23:24",
+		Properties: SelfProperties{
+			Value:   "SET VALUE",
+			MsgType: "msg type",
+		},
+	}
+
+	var content []handlers.IotServiceProperty
+	content = append(content, props)
+	services := handlers.IotServiceProperty{
+		Services: content,
+	}
+	device.ReportProperties(services)
 	time.Sleep(time.Hour)
 
+}
+
+type SelfProperties struct {
+	Value   string `json:"value"`
+	MsgType string `json:"msgType"`
 }

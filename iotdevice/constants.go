@@ -12,4 +12,7 @@ const (
 
 	CommandResponseTopicName string = "commandResponseTopicName"
 	CommandResponseTopic     string = "$oc/devices/{device_id}/sys/commands/response/request_id="
+
+	PropertiesUpTopicName string = "propertiesUpTopicName"
+	PropertiesUpTopic string = "$oc/devices/{device_id}/sys/properties/report"
 )

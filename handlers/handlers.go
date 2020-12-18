@@ -3,16 +3,16 @@ package handlers
 type IotCommandHandler func(IotCommand) bool
 
 type IotCommand struct {
-	ObjectDeviceId string `json:"object_device_id"`
-	ServiceId string `json:"service_id""`
-	CommandName string  `json:"command_name"`
-	Paras interface{} `json:"paras"`
+	ObjectDeviceId string      `json:"object_device_id"`
+	ServiceId      string      `json:"service_id""`
+	CommandName    string      `json:"command_name"`
+	Paras          interface{} `json:"paras"`
 }
 
 type IotCommandResponse struct {
-	ResultCode   byte      `json:"result_code"`
+	ResultCode   byte        `json:"result_code"`
 	ResponseName string      `json:"response_name"`
-	Paras         interface{} `json:"paras"`
+	Paras        interface{} `json:"paras"`
 }
 
 func SuccessIotCommandResponse() IotCommandResponse {
@@ -27,7 +27,6 @@ func FailedIotCommandResponse() IotCommandResponse {
 	}
 }
 
-
 type IotMessageHandler func(message IotMessage) bool
 
 type IotMessage struct {
@@ -35,4 +34,14 @@ type IotMessage struct {
 	Name           string      `json:"name"`
 	Id             string      `json:"id"`
 	Content        interface{} `json:"content"`
+}
+
+type IotServiceProperty struct {
+	Services []IotServicePropertyEntry `json:"services"`
+}
+
+type IotServicePropertyEntry struct {
+	ServiceId  string      `json:"service_id"`
+	Properties interface{} `json:"properties"`
+	EventTime  string      `json:"event_time"`
 }
