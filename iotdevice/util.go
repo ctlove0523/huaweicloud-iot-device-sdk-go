@@ -32,7 +32,5 @@ func JsonString(v interface{}) string {
 }
 
 func CommandRequestId(topic string) string {
-	segements := strings.Split(topic,"=")
-	return segements[1]
-
+	return strings.Split(topic, "=")[1]
 }

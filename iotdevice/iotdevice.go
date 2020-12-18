@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"huaweicloud-iot-device-sdk-go/handlers"
 	"strings"
 )
 
@@ -12,22 +13,19 @@ type IotDevice interface {
 	IsConnected() bool
 	SendMessage(message IotMessage) bool
 	AddMessageHandler(handler IotMessageHandler)
-	AddCommandHandler(handler IotCommandHandler)
+	AddCommandHandler(handler handlers.IotCommandHandler)
 }
 
 type IotMessageHandler interface {
 	Handle(message IotMessage)
 }
 
-type IotCommandHandler interface {
-	HandleCommand(message IotCommand) bool
-}
 
 type iotDevice struct {
 	Id                   string
 	Password             string
 	Servers              string
-	commandHandlers      []IotCommandHandler
+	commandHandlers      []handlers.IotCommandHandler
 	client               mqtt.Client
 	messageHandlers      []IotMessageHandler
 	messageDownTopic     string
@@ -37,20 +35,20 @@ type iotDevice struct {
 
 func (device *iotDevice) createCommandMqttHandler() func(client mqtt.Client, message mqtt.Message)  {
 	commandHandler := func(client mqtt.Client, message mqtt.Message) {
-		command := &IotCommand{}
+		command := &handlers.IotCommand{}
 		if json.Unmarshal(message.Payload(), command) != nil {
 			fmt.Println("unmarshal failed")
 		}
 
 		handleFlag := true
 		for _, handler := range device.commandHandlers {
-			handleFlag = handleFlag && handler.HandleCommand(*command)
+			handleFlag = handleFlag && handler(*command)
 		}
 		var res string
 		if handleFlag {
-			res = JsonString(SuccessIotCommandResponse())
+			res = JsonString(handlers.SuccessIotCommandResponse())
 		} else {
-			res = JsonString(FailedIotCommandResponse())
+			res = JsonString(handlers.FailedIotCommandResponse())
 		}
 		if token := device.client.Publish(device.commandResponseTopic+CommandRequestId(message.Topic()), 1, false, res);
 			token.Wait() && token.Error() != nil {
@@ -116,7 +114,7 @@ func (device *iotDevice) AddMessageHandler(handler IotMessageHandler) {
 	device.messageHandlers = append(device.messageHandlers, handler)
 }
 
-func (device *iotDevice) AddCommandHandler(handler IotCommandHandler) {
+func (device *iotDevice) AddCommandHandler(handler handlers.IotCommandHandler) {
 	if handler == nil {
 		return
 	}
@@ -140,7 +138,7 @@ func CreateIotDevice(id, password, servers string) IotDevice {
 	device.Password = password
 	device.Servers = servers
 	device.messageHandlers = []IotMessageHandler{}
-	device.commandHandlers = []IotCommandHandler{}
+	device.commandHandlers = []handlers.IotCommandHandler{}
 	device.messageDownTopic = strings.ReplaceAll("$oc/devices/{device_id}/sys/messages/down", "{device_id}", id)
 	device.commandDownTopic = strings.ReplaceAll("$oc/devices/{device_id}/sys/commands/#", "{device_id}", id)
 	device.commandResponseTopic = strings.ReplaceAll("$oc/devices/{device_id}/sys/commands/response/request_id=", "{device_id}", id)

@@ -1,4 +1,6 @@
-package iotdevice
+package handlers
+
+type IotCommandHandler func(IotCommand) bool
 
 type IotCommand struct {
 	ObjectDeviceId string `json:"object_device_id"`
@@ -24,5 +26,3 @@ func FailedIotCommandResponse() IotCommandResponse {
 		ResultCode: 1,
 	}
 }
-
-
