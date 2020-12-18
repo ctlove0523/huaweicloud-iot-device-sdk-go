@@ -4,6 +4,9 @@ const (
 	MessageDownTopic     string = "$oc/devices/{device_id}/sys/messages/down"
 	MessageDownTopicName string = "messageDownTopicName"
 
+	MessageUpTopic     string = "$oc/devices/{device_id}/sys/messages/up"
+	MessageUpTopicName string = "messageUpTopicName"
+
 	CommandDownTopicName string = "commandDownTopicName"
 	CommandDownTopic     string = "$oc/devices/{device_id}/sys/commands/#"
 

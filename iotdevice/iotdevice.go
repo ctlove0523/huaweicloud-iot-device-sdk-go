@@ -11,13 +11,9 @@ import (
 type IotDevice interface {
 	Init() bool
 	IsConnected() bool
-	SendMessage(message IotMessage) bool
-	AddMessageHandler(handler IotMessageHandler)
+	SendMessage(message handlers.IotMessage) bool
+	AddMessageHandler(handler handlers.IotMessageHandler)
 	AddCommandHandler(handler handlers.IotCommandHandler)
-}
-
-type IotMessageHandler interface {
-	Handle(message IotMessage)
 }
 
 type iotDevice struct {
@@ -26,8 +22,23 @@ type iotDevice struct {
 	Servers         string
 	commandHandlers []handlers.IotCommandHandler
 	client          mqtt.Client
-	messageHandlers []IotMessageHandler
+	messageHandlers []handlers.IotMessageHandler
 	topics          map[string]string
+}
+
+func (device *iotDevice) createMessageMqttHandler() func(client mqtt.Client, message mqtt.Message) {
+	messageHandler := func(client mqtt.Client, message mqtt.Message) {
+		msg := &handlers.IotMessage{}
+		if json.Unmarshal(message.Payload(), msg) != nil {
+			fmt.Println("unmarshal device message failed")
+		}
+
+		for _, handler := range device.messageHandlers {
+			handler(*msg)
+		}
+	}
+
+	return messageHandler
 }
 
 func (device *iotDevice) createCommandMqttHandler() func(client mqtt.Client, message mqtt.Message) {
@@ -70,16 +81,26 @@ func (device *iotDevice) Init() bool {
 		return false
 	}
 
-	subscirbeToken := device.client.Subscribe(device.topics[CommandDownTopicName], 2, device.createCommandMqttHandler())
-	if subscirbeToken.Wait() && subscirbeToken.Error() != nil {
-		fmt.Println(len(subscirbeToken.Error().Error()))
-		fmt.Println("subscribe failed")
-	} else {
-		fmt.Println("subscribe success")
-	}
+	device.subscribeDefaultTopics()
 
 	return true
 
+}
+
+func (device *iotDevice) subscribeDefaultTopics() {
+	// 订阅平台命令下发topic
+	if token := device.client.Subscribe(device.topics[CommandDownTopicName], 2, device.createCommandMqttHandler());
+		token.Wait() && token.Error() != nil {
+		fmt.Println("subscribe command down topic failed")
+		panic(0)
+	}
+
+	// 订阅平台消息下发的topic
+	if token := device.client.Subscribe(device.topics[MessageDownTopicName], 2, device.createMessageMqttHandler());
+		token.Wait() && token.Error() != nil {
+		fmt.Println("subscribe message down topic failed")
+		panic(0)
+	}
 }
 
 func (device *iotDevice) IsConnected() bool {
@@ -89,14 +110,10 @@ func (device *iotDevice) IsConnected() bool {
 	return false
 }
 
-func (device *iotDevice) SendMessage(message IotMessage) bool {
-	topic := strings.Replace("$oc/devices/{device_id}/sys/messages/up", "{device_id}", device.Id, 1)
-	messageData, err := json.Marshal(message)
-	if err != nil {
-		fmt.Println("convert message to json format failed")
-		return false
-	}
-	if token := device.client.Publish(topic, 2, false, string(messageData)); token.Wait() && token.Error() != nil {
+func (device *iotDevice) SendMessage(message handlers.IotMessage) bool {
+	messageData := JsonString(message)
+	if token := device.client.Publish(device.topics[MessageUpTopicName], 2, false, messageData);
+		token.Wait() && token.Error() != nil {
 		fmt.Println("send message failed")
 		return false
 	}
@@ -104,7 +121,7 @@ func (device *iotDevice) SendMessage(message IotMessage) bool {
 	return true
 }
 
-func (device *iotDevice) AddMessageHandler(handler IotMessageHandler) {
+func (device *iotDevice) AddMessageHandler(handler handlers.IotMessageHandler) {
 	if handler == nil {
 		return
 	}
@@ -134,7 +151,7 @@ func CreateIotDevice(id, password, servers string) IotDevice {
 	device.Id = id
 	device.Password = password
 	device.Servers = servers
-	device.messageHandlers = []IotMessageHandler{}
+	device.messageHandlers = []handlers.IotMessageHandler{}
 	device.commandHandlers = []handlers.IotCommandHandler{}
 
 	// 初始化设备相关的所有topic
@@ -142,6 +159,7 @@ func CreateIotDevice(id, password, servers string) IotDevice {
 	device.topics[MessageDownTopicName] = TopicFormat(MessageDownTopic, id)
 	device.topics[CommandDownTopicName] = TopicFormat(CommandDownTopic, id)
 	device.topics[CommandResponseTopicName] = TopicFormat(CommandResponseTopic, id)
+	device.topics[MessageUpTopicName] = TopicFormat(MessageUpTopic, id)
 
 	return device
 }
