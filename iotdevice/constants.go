@@ -27,4 +27,10 @@ const (
 	PropertiesQueryRequestTopic     string = "$oc/devices/{device_id}/sys/properties/get/#"
 	PropertiesQueryResponseTopicName string = "propertiesQueryResponseTopicName"
 	PropertiesQueryResponseTopic     string = "$oc/devices/{device_id}/sys/properties/get/response/request_id="
+
+	// 设备侧获取平台的设备影子数据
+	DeviceShadowQueryRequestTopicName string = "deviceShadowQueryRequestTopicName"
+	DeviceShadowQueryRequestTopic string = "$oc/devices/{device_id}/sys/shadow/get/request_id="
+	DeviceShadowQueryResponseTopicName string = "deviceShadowQueryResponseTopicName"
+	DeviceShadowQueryResponseTopic string = "$oc/devices/{device_id}/sys/shadow/get/response/#"
 )

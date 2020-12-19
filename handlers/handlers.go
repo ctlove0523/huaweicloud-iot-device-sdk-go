@@ -87,5 +87,24 @@ func FailedPropertiesSetResponse() IotDevicePropertyDownResponse {
 type IotDevicePropertyQueryHandler func(query IotDevicePropertyQueryRequest) IotServicePropertyEntry
 type IotDevicePropertyQueryRequest struct {
 	ObjectDeviceId string `json:"object_device_id"`
-	ServiceId     string `json:"service_id"`
+	ServiceId      string `json:"service_id"`
+}
+
+// 设备获取设备影子数据
+type IotDevicePropertyQueryResponseHandler func(response IotDevicePropertyQueryResponse)
+
+type IotDevicePropertyQueryResponse struct {
+	ObjectDeviceId string                `json:"object_device_id"`
+	Shadow         []IotDeviceShadowData `json:"shadow"`
+}
+
+type IotDeviceShadowData struct {
+	ServiceId string                        `json:"service_id"`
+	Desired   IotDeviceShadowPropertiesData `json:"desired"`
+	Reported  IotDeviceShadowPropertiesData `json:"reported"`
+	Version   int                           `json:"version"`
+}
+type IotDeviceShadowPropertiesData struct {
+	Properties interface{} `json:"properties"`
+	EventTime  string      `json:"event_time"`
 }

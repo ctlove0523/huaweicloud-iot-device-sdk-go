@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/satori/go.uuid"
 	"huaweicloud-iot-device-sdk-go/handlers"
 	"strings"
 )
@@ -13,22 +14,25 @@ type IotDevice interface {
 	IsConnected() bool
 	SendMessage(message handlers.IotMessage) bool
 	ReportProperties(properties handlers.IotServiceProperty) bool
+	QueryDeviceShadow(query handlers.IotDevicePropertyQueryRequest, handler handlers.IotDevicePropertyQueryResponseHandler)
 	AddMessageHandler(handler handlers.IotMessageHandler)
 	AddCommandHandler(handler handlers.IotCommandHandler)
 	AddPropertiesSetHandler(handler handlers.IotDevicePropertiesSetHandler)
 	SetPropertyQueryHandler(handler handlers.IotDevicePropertyQueryHandler)
+	//SetPropertiesQueryResponseHandler(handler handlers.IotDevicePropertyQueryResponseHandler)
 }
 
 type iotDevice struct {
-	Id                    string
-	Password              string
-	Servers               string
-	client                mqtt.Client
-	commandHandlers       []handlers.IotCommandHandler
-	messageHandlers       []handlers.IotMessageHandler
-	propertiesSetHandlers []handlers.IotDevicePropertiesSetHandler
-	propertyQueryHandler  handlers.IotDevicePropertyQueryHandler
-	topics                map[string]string
+	Id                             string
+	Password                       string
+	Servers                        string
+	client                         mqtt.Client
+	commandHandlers                []handlers.IotCommandHandler
+	messageHandlers                []handlers.IotMessageHandler
+	propertiesSetHandlers          []handlers.IotDevicePropertiesSetHandler
+	propertyQueryHandler           handlers.IotDevicePropertyQueryHandler
+	propertiesQueryResponseHandler handlers.IotDevicePropertyQueryResponseHandler
+	topics                         map[string]string
 }
 
 func (device *iotDevice) createMessageMqttHandler() func(client mqtt.Client, message mqtt.Message) {
@@ -117,6 +121,18 @@ func (device *iotDevice) createPropertiesQueryMqttHandler() func(client mqtt.Cli
 	return propertiesQueryHandler
 }
 
+func (device *iotDevice) createPropertiesQueryResponseMqttHandler() func(client mqtt.Client, message mqtt.Message) {
+	propertiesQueryResponseHandler := func(client mqtt.Client, message mqtt.Message) {
+		propertiesQueryResponse := &handlers.IotDevicePropertyQueryResponse{}
+		if json.Unmarshal(message.Payload(), propertiesQueryResponse) != nil {
+			fmt.Println("unmarshal failed")
+		}
+		device.propertiesQueryResponseHandler(*propertiesQueryResponse)
+	}
+
+	return propertiesQueryResponseHandler
+}
+
 func (device *iotDevice) Init() bool {
 	options := mqtt.NewClientOptions()
 	options.AddBroker(device.Servers)
@@ -165,6 +181,14 @@ func (device *iotDevice) subscribeDefaultTopics() {
 		fmt.Println("subscribe properties query topic failed")
 		panic(0)
 	}
+
+	// 订阅查询设备影子响应的topic
+	if token := device.client.Subscribe(device.topics[DeviceShadowQueryResponseTopicName], 2, device.createPropertiesQueryResponseMqttHandler());
+		token.Wait() && token.Error() != nil {
+		fmt.Println("subscribe query device shadow datafailed")
+		panic(0)
+	}
+
 }
 
 func (device *iotDevice) IsConnected() bool {
@@ -195,6 +219,16 @@ func (device *iotDevice) ReportProperties(properties handlers.IotServiceProperty
 	return true
 }
 
+func (device *iotDevice) QueryDeviceShadow(query handlers.IotDevicePropertyQueryRequest, handler handlers.IotDevicePropertyQueryResponseHandler) {
+	device.propertiesQueryResponseHandler = handler
+	requestId:= uuid.NewV4()
+	fmt.Println(requestId)
+	if token := device.client.Publish(device.topics[DeviceShadowQueryRequestTopicName]+requestId.String(), 2, false, JsonString(query));
+		token.Wait() && token.Error() != nil {
+		fmt.Println("query device shadow data failed")
+	}
+}
+
 func (device *iotDevice) AddMessageHandler(handler handlers.IotMessageHandler) {
 	if handler == nil {
 		return
@@ -220,6 +254,10 @@ func (device *iotDevice) AddPropertiesSetHandler(handler handlers.IotDevicePrope
 func (device *iotDevice) SetPropertyQueryHandler(handler handlers.IotDevicePropertyQueryHandler) {
 	device.propertyQueryHandler = handler
 }
+
+//func (device *iotDevice) SetPropertiesQueryResponseHandler(handler handlers.IotDevicePropertyQueryResponseHandler) {
+//	device.propertiesQueryResponseHandler = handler
+//}
 
 func assembleClientId(device *iotDevice) string {
 	segments := make([]string, 4)
@@ -250,5 +288,7 @@ func CreateIotDevice(id, password, servers string) IotDevice {
 	device.topics[PropertiesSetResponseTopicName] = TopicFormat(PropertiesSetResponseTopic, id)
 	device.topics[PropertiesQueryRequestTopicName] = TopicFormat(PropertiesQueryRequestTopic, id)
 	device.topics[PropertiesQueryResponseTopicName] = TopicFormat(PropertiesQueryResponseTopic, id)
+	device.topics[DeviceShadowQueryRequestTopicName] = TopicFormat(DeviceShadowQueryRequestTopic, id)
+	device.topics[DeviceShadowQueryResponseTopicName] = TopicFormat(DeviceShadowQueryResponseTopic, id)
 	return device
 }

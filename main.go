@@ -59,6 +59,12 @@ func main() {
 		Services: content,
 	}
 	device.ReportProperties(services)
+
+	device.QueryDeviceShadow(handlers.IotDevicePropertyQueryRequest{
+		ServiceId: "value",
+	}, func(response handlers.IotDevicePropertyQueryResponse) {
+		fmt.Println(response.Shadow)
+	})
 	time.Sleep(time.Hour)
 
 }
