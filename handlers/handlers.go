@@ -38,7 +38,7 @@ type IotMessage struct {
 	Content        interface{} `json:"content"`
 }
 
-// 设备属性
+// 设备上报属性
 type IotServiceProperty struct {
 	Services []IotServicePropertyEntry `json:"services"`
 }
@@ -49,4 +49,36 @@ type IotServicePropertyEntry struct {
 	EventTime  string      `json:"event_time"`
 }
 
-// 网关与子设备管理
+// 平台设置设备属性==================================================
+type IotDevicePropertiesSetHandler func(message IotDevicePropertyDownRequest) bool
+
+type IotDevicePropertyDownRequest struct {
+	ObjectDeviceId string                              `json:"object_device_id"`
+	Services       []IotDevicePropertyDownRequestEntry `json:"services"`
+}
+
+type IotDevicePropertyDownRequestEntry struct {
+	ServiceId  string      `json:"service_id"`
+	Properties interface{} `json:"properties"`
+}
+
+type IotDevicePropertyDownResponse struct {
+	ResultCode byte   `json:"result_code"`
+	ResultDesc string `json:"result_desc"`
+}
+
+func SuccessPropertiesSetResponse() IotDevicePropertyDownResponse {
+	return IotDevicePropertyDownResponse{
+		ResultCode: 0,
+		ResultDesc: "success set properties",
+	}
+}
+
+func FailedPropertiesSetResponse() IotDevicePropertyDownResponse {
+	return IotDevicePropertyDownResponse{
+		ResultCode: 1,
+		ResultDesc: "failed set properties",
+	}
+}
+
+// 平台设置设备属性==================================================

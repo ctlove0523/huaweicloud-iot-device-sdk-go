@@ -31,7 +31,7 @@ func JsonString(v interface{}) string {
 	return string(byteData)
 }
 
-func CommandRequestId(topic string) string {
+func TopicRequestId(topic string) string {
 	return strings.Split(topic, "=")[1]
 }
 

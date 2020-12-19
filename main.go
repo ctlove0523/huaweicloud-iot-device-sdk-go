@@ -19,6 +19,11 @@ func main() {
 		fmt.Println(message.Content)
 		return true
 	})
+	device.AddPropertiesSetHandler(func(message handlers.IotDevicePropertyDownRequest) bool {
+		fmt.Println("I get property set command")
+		fmt.Println(message)
+		return true
+	})
 
 	message := handlers.IotMessage{
 		ObjectDeviceId: "chen tong",
@@ -33,8 +38,8 @@ func main() {
 		ServiceId: "value",
 		EventTime: "2020-12-19 02:23:24",
 		Properties: SelfProperties{
-			Value:   "SET VALUE",
-			MsgType: "msg type",
+			Value:   "chen tong",
+			MsgType: "1",
 		},
 	}
 

@@ -15,16 +15,18 @@ type IotDevice interface {
 	ReportProperties(properties handlers.IotServiceProperty) bool
 	AddMessageHandler(handler handlers.IotMessageHandler)
 	AddCommandHandler(handler handlers.IotCommandHandler)
+	AddPropertiesSetHandler(handler handlers.IotDevicePropertiesSetHandler)
 }
 
 type iotDevice struct {
-	Id              string
-	Password        string
-	Servers         string
-	commandHandlers []handlers.IotCommandHandler
-	client          mqtt.Client
-	messageHandlers []handlers.IotMessageHandler
-	topics          map[string]string
+	Id                    string
+	Password              string
+	Servers               string
+	client                mqtt.Client
+	commandHandlers       []handlers.IotCommandHandler
+	messageHandlers       []handlers.IotMessageHandler
+	propertiesSetHandlers []handlers.IotDevicePropertiesSetHandler
+	topics                map[string]string
 }
 
 func (device *iotDevice) createMessageMqttHandler() func(client mqtt.Client, message mqtt.Message) {
@@ -59,13 +61,40 @@ func (device *iotDevice) createCommandMqttHandler() func(client mqtt.Client, mes
 		} else {
 			res = JsonString(handlers.FailedIotCommandResponse())
 		}
-		if token := device.client.Publish(device.topics[CommandResponseTopicName]+CommandRequestId(message.Topic()), 1, false, res);
+		if token := device.client.Publish(device.topics[CommandResponseTopicName]+TopicRequestId(message.Topic()), 1, false, res);
 			token.Wait() && token.Error() != nil {
-			fmt.Println("send command response success")
+			fmt.Println("send command response failed")
 		}
 	}
 
 	return commandHandler
+}
+
+func (device *iotDevice) createPropertiesSetMqttHandler() func(client mqtt.Client, message mqtt.Message) {
+	propertiesSetHandler := func(client mqtt.Client, message mqtt.Message) {
+		propertiesSetRequest := &handlers.IotDevicePropertyDownRequest{}
+		if json.Unmarshal(message.Payload(), propertiesSetRequest) != nil {
+			fmt.Println("unmarshal failed")
+		}
+
+		handleFlag := true
+		for _, handler := range device.propertiesSetHandlers {
+			handleFlag = handleFlag && handler(*propertiesSetRequest)
+		}
+
+		var res string
+		if handleFlag {
+			res = JsonString(handlers.SuccessPropertiesSetResponse())
+		} else {
+			res = JsonString(handlers.FailedPropertiesSetResponse())
+		}
+		if token := device.client.Publish(device.topics[PropertiesSetResponseTopicName]+TopicRequestId(message.Topic()), 1, false, res);
+			token.Wait() && token.Error() != nil {
+			fmt.Println("send properties set response failed")
+		}
+	}
+
+	return propertiesSetHandler
 }
 
 func (device *iotDevice) Init() bool {
@@ -100,6 +129,13 @@ func (device *iotDevice) subscribeDefaultTopics() {
 	if token := device.client.Subscribe(device.topics[MessageDownTopicName], 2, device.createMessageMqttHandler());
 		token.Wait() && token.Error() != nil {
 		fmt.Println("subscribe message down topic failed")
+		panic(0)
+	}
+
+	// 订阅平台设置设备属性的topic
+	if token := device.client.Subscribe(device.topics[PropertiesSetRequestTopicName], 2, device.createPropertiesSetMqttHandler());
+		token.Wait() && token.Error() != nil {
+		fmt.Println("subscribe properties set topic failed")
 		panic(0)
 	}
 }
@@ -147,6 +183,13 @@ func (device *iotDevice) AddCommandHandler(handler handlers.IotCommandHandler) {
 	device.commandHandlers = append(device.commandHandlers, handler)
 }
 
+func (device *iotDevice) AddPropertiesSetHandler(handler handlers.IotDevicePropertiesSetHandler) {
+	if handler == nil {
+		return
+	}
+	device.propertiesSetHandlers = append(device.propertiesSetHandlers, handler)
+}
+
 func assembleClientId(device *iotDevice) string {
 	segments := make([]string, 4)
 	segments[0] = device.Id
@@ -172,6 +215,8 @@ func CreateIotDevice(id, password, servers string) IotDevice {
 	device.topics[CommandResponseTopicName] = TopicFormat(CommandResponseTopic, id)
 	device.topics[MessageUpTopicName] = TopicFormat(MessageUpTopic, id)
 	device.topics[PropertiesUpTopicName] = TopicFormat(PropertiesUpTopic, id)
+	device.topics[PropertiesSetRequestTopicName] = TopicFormat(PropertiesSetRequestTopic, id)
+	device.topics[PropertiesSetResponseTopicName] = TopicFormat(PropertiesSetResponseTopic, id)
 
 	return device
 }
