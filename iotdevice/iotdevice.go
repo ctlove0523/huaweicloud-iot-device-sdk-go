@@ -16,6 +16,7 @@ type IotDevice interface {
 	AddMessageHandler(handler handlers.IotMessageHandler)
 	AddCommandHandler(handler handlers.IotCommandHandler)
 	AddPropertiesSetHandler(handler handlers.IotDevicePropertiesSetHandler)
+	SetPropertyQueryHandler(handler handlers.IotDevicePropertyQueryHandler)
 }
 
 type iotDevice struct {
@@ -26,6 +27,7 @@ type iotDevice struct {
 	commandHandlers       []handlers.IotCommandHandler
 	messageHandlers       []handlers.IotMessageHandler
 	propertiesSetHandlers []handlers.IotDevicePropertiesSetHandler
+	propertyQueryHandler  handlers.IotDevicePropertyQueryHandler
 	topics                map[string]string
 }
 
@@ -97,6 +99,24 @@ func (device *iotDevice) createPropertiesSetMqttHandler() func(client mqtt.Clien
 	return propertiesSetHandler
 }
 
+func (device *iotDevice) createPropertiesQueryMqttHandler() func(client mqtt.Client, message mqtt.Message) {
+	propertiesQueryHandler := func(client mqtt.Client, message mqtt.Message) {
+		propertiesQueryRequest := &handlers.IotDevicePropertyQueryRequest{}
+		if json.Unmarshal(message.Payload(), propertiesQueryRequest) != nil {
+			fmt.Println("unmarshal failed")
+		}
+
+		queryResult := device.propertyQueryHandler(*propertiesQueryRequest)
+		responseToPlatform := JsonString(queryResult)
+		if token := device.client.Publish(device.topics[PropertiesQueryResponseTopicName]+TopicRequestId(message.Topic()), 1, false, responseToPlatform);
+			token.Wait() && token.Error() != nil {
+			fmt.Println("send properties set response failed")
+		}
+	}
+
+	return propertiesQueryHandler
+}
+
 func (device *iotDevice) Init() bool {
 	options := mqtt.NewClientOptions()
 	options.AddBroker(device.Servers)
@@ -136,6 +156,13 @@ func (device *iotDevice) subscribeDefaultTopics() {
 	if token := device.client.Subscribe(device.topics[PropertiesSetRequestTopicName], 2, device.createPropertiesSetMqttHandler());
 		token.Wait() && token.Error() != nil {
 		fmt.Println("subscribe properties set topic failed")
+		panic(0)
+	}
+
+	// 订阅平台查询设备属性的topic
+	if token := device.client.Subscribe(device.topics[PropertiesQueryRequestTopicName], 2, device.createPropertiesQueryMqttHandler());
+		token.Wait() && token.Error() != nil {
+		fmt.Println("subscribe properties query topic failed")
 		panic(0)
 	}
 }
@@ -190,6 +217,10 @@ func (device *iotDevice) AddPropertiesSetHandler(handler handlers.IotDevicePrope
 	device.propertiesSetHandlers = append(device.propertiesSetHandlers, handler)
 }
 
+func (device *iotDevice) SetPropertyQueryHandler(handler handlers.IotDevicePropertyQueryHandler) {
+	device.propertyQueryHandler = handler
+}
+
 func assembleClientId(device *iotDevice) string {
 	segments := make([]string, 4)
 	segments[0] = device.Id
@@ -217,6 +248,7 @@ func CreateIotDevice(id, password, servers string) IotDevice {
 	device.topics[PropertiesUpTopicName] = TopicFormat(PropertiesUpTopic, id)
 	device.topics[PropertiesSetRequestTopicName] = TopicFormat(PropertiesSetRequestTopic, id)
 	device.topics[PropertiesSetResponseTopicName] = TopicFormat(PropertiesSetResponseTopic, id)
-
+	device.topics[PropertiesQueryRequestTopicName] = TopicFormat(PropertiesQueryRequestTopic, id)
+	device.topics[PropertiesQueryResponseTopicName] = TopicFormat(PropertiesQueryResponseTopic, id)
 	return device
 }

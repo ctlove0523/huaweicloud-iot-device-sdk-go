@@ -38,7 +38,7 @@ type IotMessage struct {
 	Content        interface{} `json:"content"`
 }
 
-// 设备上报属性
+// 设备属性上报
 type IotServiceProperty struct {
 	Services []IotServicePropertyEntry `json:"services"`
 }
@@ -82,3 +82,10 @@ func FailedPropertiesSetResponse() IotDevicePropertyDownResponse {
 }
 
 // 平台设置设备属性==================================================
+
+// 平台查询设备属性
+type IotDevicePropertyQueryHandler func(query IotDevicePropertyQueryRequest) IotServicePropertyEntry
+type IotDevicePropertyQueryRequest struct {
+	ObjectDeviceId string `json:"object_device_id"`
+	ServiceId     string `json:"service_id"`
+}

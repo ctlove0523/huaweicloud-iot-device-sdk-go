@@ -24,6 +24,16 @@ func main() {
 		fmt.Println(message)
 		return true
 	})
+	device.SetPropertyQueryHandler(func(query handlers.IotDevicePropertyQueryRequest) handlers.IotServicePropertyEntry {
+		return handlers.IotServicePropertyEntry{
+			ServiceId: "value",
+			Properties: SelfProperties{
+				Value:   "QUERY RESPONSE",
+				MsgType: "query property",
+			},
+			EventTime: "2020-12-19 02:23:24",
+		}
+	})
 
 	message := handlers.IotMessage{
 		ObjectDeviceId: "chen tong",
