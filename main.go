@@ -29,7 +29,7 @@ func main() {
 
 	device.SendMessage(message)
 
-	props := handlers.IotServiceProperty{
+	props := handlers.IotServicePropertyEntry{
 		ServiceId: "value",
 		EventTime: "2020-12-19 02:23:24",
 		Properties: SelfProperties{
@@ -38,7 +38,7 @@ func main() {
 		},
 	}
 
-	var content []handlers.IotServiceProperty
+	var content []handlers.IotServicePropertyEntry
 	content = append(content, props)
 	services := handlers.IotServiceProperty{
 		Services: content,

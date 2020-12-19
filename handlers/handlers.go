@@ -2,6 +2,7 @@ package handlers
 
 type IotCommandHandler func(IotCommand) bool
 
+// 设备命令
 type IotCommand struct {
 	ObjectDeviceId string      `json:"object_device_id"`
 	ServiceId      string      `json:"service_id""`
@@ -27,6 +28,7 @@ func FailedIotCommandResponse() IotCommandResponse {
 	}
 }
 
+// 设备消息
 type IotMessageHandler func(message IotMessage) bool
 
 type IotMessage struct {
@@ -36,6 +38,7 @@ type IotMessage struct {
 	Content        interface{} `json:"content"`
 }
 
+// 设备属性
 type IotServiceProperty struct {
 	Services []IotServicePropertyEntry `json:"services"`
 }
@@ -45,3 +48,5 @@ type IotServicePropertyEntry struct {
 	Properties interface{} `json:"properties"`
 	EventTime  string      `json:"event_time"`
 }
+
+// 网关与子设备管理
