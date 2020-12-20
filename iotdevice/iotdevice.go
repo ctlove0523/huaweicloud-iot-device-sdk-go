@@ -14,12 +14,12 @@ type IotDevice interface {
 	IsConnected() bool
 	SendMessage(message handlers.IotMessage) bool
 	ReportProperties(properties handlers.IotServiceProperty) bool
+	BatchReportSubDevicesProperties(service handlers.IotDevicesService)
 	QueryDeviceShadow(query handlers.IotDevicePropertyQueryRequest, handler handlers.IotDevicePropertyQueryResponseHandler)
 	AddMessageHandler(handler handlers.IotMessageHandler)
 	AddCommandHandler(handler handlers.IotCommandHandler)
 	AddPropertiesSetHandler(handler handlers.IotDevicePropertiesSetHandler)
 	SetPropertyQueryHandler(handler handlers.IotDevicePropertyQueryHandler)
-	//SetPropertiesQueryResponseHandler(handler handlers.IotDevicePropertyQueryResponseHandler)
 }
 
 type iotDevice struct {
@@ -219,9 +219,16 @@ func (device *iotDevice) ReportProperties(properties handlers.IotServiceProperty
 	return true
 }
 
+func (device *iotDevice) BatchReportSubDevicesProperties(service handlers.IotDevicesService) {
+	if token:=device.client.Publish(device.topics[GatewayBatchReportSubDeviceTopicName],2,false,JsonString(service));
+	token.Wait() && token.Error() != nil {
+		fmt.Println("batch report sub device properties failed")
+	}
+}
+
 func (device *iotDevice) QueryDeviceShadow(query handlers.IotDevicePropertyQueryRequest, handler handlers.IotDevicePropertyQueryResponseHandler) {
 	device.propertiesQueryResponseHandler = handler
-	requestId:= uuid.NewV4()
+	requestId := uuid.NewV4()
 	fmt.Println(requestId)
 	if token := device.client.Publish(device.topics[DeviceShadowQueryRequestTopicName]+requestId.String(), 2, false, JsonString(query));
 		token.Wait() && token.Error() != nil {
@@ -290,5 +297,6 @@ func CreateIotDevice(id, password, servers string) IotDevice {
 	device.topics[PropertiesQueryResponseTopicName] = TopicFormat(PropertiesQueryResponseTopic, id)
 	device.topics[DeviceShadowQueryRequestTopicName] = TopicFormat(DeviceShadowQueryRequestTopic, id)
 	device.topics[DeviceShadowQueryResponseTopicName] = TopicFormat(DeviceShadowQueryResponseTopic, id)
+	device.topics[GatewayBatchReportSubDeviceTopicName] = TopicFormat(GatewayBatchReportSubDeviceTopic, id)
 	return device
 }

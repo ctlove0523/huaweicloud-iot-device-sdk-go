@@ -33,4 +33,9 @@ const (
 	DeviceShadowQueryRequestTopic string = "$oc/devices/{device_id}/sys/shadow/get/request_id="
 	DeviceShadowQueryResponseTopicName string = "deviceShadowQueryResponseTopicName"
 	DeviceShadowQueryResponseTopic string = "$oc/devices/{device_id}/sys/shadow/get/response/#"
+
+	// 网关批量上报子设备属性
+	GatewayBatchReportSubDeviceTopicName string = "gatewayBatchReportSubDeviceTopicName"
+	GatewayBatchReportSubDeviceTopic string = "$oc/devices/{device_id}/sys/gateway/sub_devices/properties/report"
 )
+

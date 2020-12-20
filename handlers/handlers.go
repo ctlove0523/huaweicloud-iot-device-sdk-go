@@ -108,3 +108,14 @@ type IotDeviceShadowPropertiesData struct {
 	Properties interface{} `json:"properties"`
 	EventTime  string      `json:"event_time"`
 }
+
+// 网关批量上报子设备属性
+
+type IotDevicesService struct {
+	Devices []IotDeviceService `json:"devices"`
+}
+
+type IotDeviceService struct {
+	DeviceId string                    `json:"device_id"`
+	Services []IotServicePropertyEntry `json:"services"`
+}

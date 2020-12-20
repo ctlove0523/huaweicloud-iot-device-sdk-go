@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"huaweicloud-iot-device-sdk-go/handlers"
 	"huaweicloud-iot-device-sdk-go/iotdevice"
@@ -49,7 +50,7 @@ func main() {
 		EventTime: "2020-12-19 02:23:24",
 		Properties: SelfProperties{
 			Value:   "chen tong",
-			MsgType: "1",
+			MsgType: "10",
 		},
 	}
 
@@ -65,8 +66,42 @@ func main() {
 	}, func(response handlers.IotDevicePropertyQueryResponse) {
 		fmt.Println(response.Shadow)
 	})
+
+	// 批量上报子设备属性
+	subDevice1 := handlers.IotDeviceService{
+		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-1",
+		Services: content,
+	}
+	subDevice2 := handlers.IotDeviceService{
+		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-2",
+		Services: content,
+	}
+
+	subDevice3 := handlers.IotDeviceService{
+		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-3",
+		Services: content,
+	}
+
+	var devices []handlers.IotDeviceService
+	devices = append(devices, subDevice1, subDevice2, subDevice3)
+
+	fmt.Println("begin to batch report")
+	fmt.Println(JsonString(handlers.IotDevicesService{
+		Devices: devices,
+	}))
+	device.BatchReportSubDevicesProperties(handlers.IotDevicesService{
+		Devices: devices,
+	})
 	time.Sleep(time.Hour)
 
+}
+
+func JsonString(v interface{}) string {
+	byteData, err := json.Marshal(v)
+	if err != nil {
+		return ""
+	}
+	return string(byteData)
 }
 
 type SelfProperties struct {
