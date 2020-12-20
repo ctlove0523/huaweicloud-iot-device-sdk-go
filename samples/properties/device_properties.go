@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	iot "huaweicloud-iot-device-sdk-go"
+	iot "github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
 	"time"
 )
 
@@ -52,7 +52,7 @@ func main() {
 	device.QueryDeviceShadow(iot.DevicePropertyQueryRequest{
 		ServiceId: "value",
 	}, func(response iot.DevicePropertyQueryResponse) {
-		fmt.Printf("query device shadow success.\n,device shadow data is %s\n",iot.Interface2JsonString(response))
+		fmt.Printf("query device shadow success.\n,device shadow data is %s\n", iot.Interface2JsonString(response))
 	})
 
 	// 批量上报子设备属性

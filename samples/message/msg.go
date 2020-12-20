@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	iot "github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
 	uuid "github.com/satori/go.uuid"
-	iot "huaweicloud-iot-device-sdk-go"
 	"time"
 )
 

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"huaweicloud-iot-device-sdk-go"
+	"github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
 	"time"
 )
 
