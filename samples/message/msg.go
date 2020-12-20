@@ -1,0 +1,38 @@
+package main
+
+import (
+	"fmt"
+	uuid "github.com/satori/go.uuid"
+	iot "huaweicloud-iot-device-sdk-go"
+	"time"
+)
+
+func main() {
+	// 创建一个设备并初始化
+	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
+	device.Init()
+
+	// 注册平台下发消息的callback，当收到平台下发的消息时，调用此callback.
+	// 支持注册多个callback，并且按照注册顺序调用
+
+	device.AddMessageHandler(func(message iot.Message) bool {
+		fmt.Println("first handler called" + iot.Interface2JsonString(message))
+		return true
+	})
+
+	device.AddMessageHandler(func(message iot.Message) bool {
+		fmt.Println("second handler called" + iot.Interface2JsonString(message))
+		return true
+	})
+
+	//向平台发送消息
+	message := iot.Message{
+		ObjectDeviceId: uuid.NewV4().String(),
+		Name:           "Fist send message to platform",
+		Id:             uuid.NewV4().String(),
+		Content:        "Hello Huawei IoT Platform",
+	}
+	device.SendMessage(message)
+	time.Sleep(2 * time.Minute)
+
+}

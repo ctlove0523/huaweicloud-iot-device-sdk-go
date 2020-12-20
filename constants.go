@@ -1,4 +1,4 @@
-package iotdevice
+package iot
 
 const (
 	MessageDownTopic     string = "$oc/devices/{device_id}/sys/messages/down"

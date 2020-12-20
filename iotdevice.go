@@ -1,25 +1,24 @@
-package iotdevice
+package iot
 
 import (
 	"encoding/json"
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/satori/go.uuid"
-	"huaweicloud-iot-device-sdk-go/handlers"
 	"strings"
 )
 
-type IotDevice interface {
+type Device interface {
 	Init() bool
 	IsConnected() bool
-	SendMessage(message handlers.IotMessage) bool
-	ReportProperties(properties handlers.IotServiceProperty) bool
-	BatchReportSubDevicesProperties(service handlers.IotDevicesService)
-	QueryDeviceShadow(query handlers.IotDevicePropertyQueryRequest, handler handlers.IotDevicePropertyQueryResponseHandler)
-	AddMessageHandler(handler handlers.IotMessageHandler)
-	AddCommandHandler(handler handlers.IotCommandHandler)
-	AddPropertiesSetHandler(handler handlers.IotDevicePropertiesSetHandler)
-	SetPropertyQueryHandler(handler handlers.IotDevicePropertyQueryHandler)
+	SendMessage(message Message) bool
+	ReportProperties(properties ServiceProperty) bool
+	BatchReportSubDevicesProperties(service DevicesService)
+	QueryDeviceShadow(query DevicePropertyQueryRequest, handler DevicePropertyQueryResponseHandler)
+	AddMessageHandler(handler MessageHandler)
+	AddCommandHandler(handler CommandHandler)
+	AddPropertiesSetHandler(handler DevicePropertiesSetHandler)
+	SetPropertyQueryHandler(handler DevicePropertyQueryHandler)
 }
 
 type iotDevice struct {
@@ -27,17 +26,17 @@ type iotDevice struct {
 	Password                       string
 	Servers                        string
 	client                         mqtt.Client
-	commandHandlers                []handlers.IotCommandHandler
-	messageHandlers                []handlers.IotMessageHandler
-	propertiesSetHandlers          []handlers.IotDevicePropertiesSetHandler
-	propertyQueryHandler           handlers.IotDevicePropertyQueryHandler
-	propertiesQueryResponseHandler handlers.IotDevicePropertyQueryResponseHandler
+	commandHandlers                []CommandHandler
+	messageHandlers                []MessageHandler
+	propertiesSetHandlers          []DevicePropertiesSetHandler
+	propertyQueryHandler           DevicePropertyQueryHandler
+	propertiesQueryResponseHandler DevicePropertyQueryResponseHandler
 	topics                         map[string]string
 }
 
 func (device *iotDevice) createMessageMqttHandler() func(client mqtt.Client, message mqtt.Message) {
 	messageHandler := func(client mqtt.Client, message mqtt.Message) {
-		msg := &handlers.IotMessage{}
+		msg := &Message{}
 		if json.Unmarshal(message.Payload(), msg) != nil {
 			fmt.Println("unmarshal device message failed")
 		}
@@ -52,7 +51,7 @@ func (device *iotDevice) createMessageMqttHandler() func(client mqtt.Client, mes
 
 func (device *iotDevice) createCommandMqttHandler() func(client mqtt.Client, message mqtt.Message) {
 	commandHandler := func(client mqtt.Client, message mqtt.Message) {
-		command := &handlers.IotCommand{}
+		command := &Command{}
 		if json.Unmarshal(message.Payload(), command) != nil {
 			fmt.Println("unmarshal failed")
 		}
@@ -63,11 +62,11 @@ func (device *iotDevice) createCommandMqttHandler() func(client mqtt.Client, mes
 		}
 		var res string
 		if handleFlag {
-			res = JsonString(handlers.SuccessIotCommandResponse())
+			res = Interface2JsonString(SuccessIotCommandResponse())
 		} else {
-			res = JsonString(handlers.FailedIotCommandResponse())
+			res = Interface2JsonString(FailedIotCommandResponse())
 		}
-		if token := device.client.Publish(device.topics[CommandResponseTopicName]+TopicRequestId(message.Topic()), 1, false, res);
+		if token := device.client.Publish(device.topics[CommandResponseTopicName]+GetTopicRequestId(message.Topic()), 1, false, res);
 			token.Wait() && token.Error() != nil {
 			fmt.Println("send command response failed")
 		}
@@ -78,7 +77,7 @@ func (device *iotDevice) createCommandMqttHandler() func(client mqtt.Client, mes
 
 func (device *iotDevice) createPropertiesSetMqttHandler() func(client mqtt.Client, message mqtt.Message) {
 	propertiesSetHandler := func(client mqtt.Client, message mqtt.Message) {
-		propertiesSetRequest := &handlers.IotDevicePropertyDownRequest{}
+		propertiesSetRequest := &DevicePropertyDownRequest{}
 		if json.Unmarshal(message.Payload(), propertiesSetRequest) != nil {
 			fmt.Println("unmarshal failed")
 		}
@@ -90,11 +89,11 @@ func (device *iotDevice) createPropertiesSetMqttHandler() func(client mqtt.Clien
 
 		var res string
 		if handleFlag {
-			res = JsonString(handlers.SuccessPropertiesSetResponse())
+			res = Interface2JsonString(SuccessPropertiesSetResponse())
 		} else {
-			res = JsonString(handlers.FailedPropertiesSetResponse())
+			res = Interface2JsonString(FailedPropertiesSetResponse())
 		}
-		if token := device.client.Publish(device.topics[PropertiesSetResponseTopicName]+TopicRequestId(message.Topic()), 1, false, res);
+		if token := device.client.Publish(device.topics[PropertiesSetResponseTopicName]+GetTopicRequestId(message.Topic()), 1, false, res);
 			token.Wait() && token.Error() != nil {
 			fmt.Println("send properties set response failed")
 		}
@@ -105,14 +104,14 @@ func (device *iotDevice) createPropertiesSetMqttHandler() func(client mqtt.Clien
 
 func (device *iotDevice) createPropertiesQueryMqttHandler() func(client mqtt.Client, message mqtt.Message) {
 	propertiesQueryHandler := func(client mqtt.Client, message mqtt.Message) {
-		propertiesQueryRequest := &handlers.IotDevicePropertyQueryRequest{}
+		propertiesQueryRequest := &DevicePropertyQueryRequest{}
 		if json.Unmarshal(message.Payload(), propertiesQueryRequest) != nil {
 			fmt.Println("unmarshal failed")
 		}
 
 		queryResult := device.propertyQueryHandler(*propertiesQueryRequest)
-		responseToPlatform := JsonString(queryResult)
-		if token := device.client.Publish(device.topics[PropertiesQueryResponseTopicName]+TopicRequestId(message.Topic()), 1, false, responseToPlatform);
+		responseToPlatform := Interface2JsonString(queryResult)
+		if token := device.client.Publish(device.topics[PropertiesQueryResponseTopicName]+GetTopicRequestId(message.Topic()), 1, false, responseToPlatform);
 			token.Wait() && token.Error() != nil {
 			fmt.Println("send properties set response failed")
 		}
@@ -123,7 +122,7 @@ func (device *iotDevice) createPropertiesQueryMqttHandler() func(client mqtt.Cli
 
 func (device *iotDevice) createPropertiesQueryResponseMqttHandler() func(client mqtt.Client, message mqtt.Message) {
 	propertiesQueryResponseHandler := func(client mqtt.Client, message mqtt.Message) {
-		propertiesQueryResponse := &handlers.IotDevicePropertyQueryResponse{}
+		propertiesQueryResponse := &DevicePropertyQueryResponse{}
 		if json.Unmarshal(message.Payload(), propertiesQueryResponse) != nil {
 			fmt.Println("unmarshal failed")
 		}
@@ -198,8 +197,8 @@ func (device *iotDevice) IsConnected() bool {
 	return false
 }
 
-func (device *iotDevice) SendMessage(message handlers.IotMessage) bool {
-	messageData := JsonString(message)
+func (device *iotDevice) SendMessage(message Message) bool {
+	messageData := Interface2JsonString(message)
 	if token := device.client.Publish(device.topics[MessageUpTopicName], 2, false, messageData);
 		token.Wait() && token.Error() != nil {
 		fmt.Println("send message failed")
@@ -209,8 +208,8 @@ func (device *iotDevice) SendMessage(message handlers.IotMessage) bool {
 	return true
 }
 
-func (device *iotDevice) ReportProperties(properties handlers.IotServiceProperty) bool {
-	propertiesData := JsonString(properties)
+func (device *iotDevice) ReportProperties(properties ServiceProperty) bool {
+	propertiesData := Interface2JsonString(properties)
 	if token := device.client.Publish(device.topics[PropertiesUpTopicName], 2, false, propertiesData);
 		token.Wait() && token.Error() != nil {
 		fmt.Println("report properties failed")
@@ -219,31 +218,31 @@ func (device *iotDevice) ReportProperties(properties handlers.IotServiceProperty
 	return true
 }
 
-func (device *iotDevice) BatchReportSubDevicesProperties(service handlers.IotDevicesService) {
-	if token:=device.client.Publish(device.topics[GatewayBatchReportSubDeviceTopicName],2,false,JsonString(service));
-	token.Wait() && token.Error() != nil {
+func (device *iotDevice) BatchReportSubDevicesProperties(service DevicesService) {
+	if token:=device.client.Publish(device.topics[GatewayBatchReportSubDeviceTopicName],2,false, Interface2JsonString(service));
+		token.Wait() && token.Error() != nil {
 		fmt.Println("batch report sub device properties failed")
 	}
 }
 
-func (device *iotDevice) QueryDeviceShadow(query handlers.IotDevicePropertyQueryRequest, handler handlers.IotDevicePropertyQueryResponseHandler) {
+func (device *iotDevice) QueryDeviceShadow(query DevicePropertyQueryRequest, handler DevicePropertyQueryResponseHandler) {
 	device.propertiesQueryResponseHandler = handler
 	requestId := uuid.NewV4()
 	fmt.Println(requestId)
-	if token := device.client.Publish(device.topics[DeviceShadowQueryRequestTopicName]+requestId.String(), 2, false, JsonString(query));
+	if token := device.client.Publish(device.topics[DeviceShadowQueryRequestTopicName]+requestId.String(), 2, false, Interface2JsonString(query));
 		token.Wait() && token.Error() != nil {
 		fmt.Println("query device shadow data failed")
 	}
 }
 
-func (device *iotDevice) AddMessageHandler(handler handlers.IotMessageHandler) {
+func (device *iotDevice) AddMessageHandler(handler MessageHandler) {
 	if handler == nil {
 		return
 	}
 	device.messageHandlers = append(device.messageHandlers, handler)
 }
 
-func (device *iotDevice) AddCommandHandler(handler handlers.IotCommandHandler) {
+func (device *iotDevice) AddCommandHandler(handler CommandHandler) {
 	if handler == nil {
 		return
 	}
@@ -251,18 +250,18 @@ func (device *iotDevice) AddCommandHandler(handler handlers.IotCommandHandler) {
 	device.commandHandlers = append(device.commandHandlers, handler)
 }
 
-func (device *iotDevice) AddPropertiesSetHandler(handler handlers.IotDevicePropertiesSetHandler) {
+func (device *iotDevice) AddPropertiesSetHandler(handler DevicePropertiesSetHandler) {
 	if handler == nil {
 		return
 	}
 	device.propertiesSetHandlers = append(device.propertiesSetHandlers, handler)
 }
 
-func (device *iotDevice) SetPropertyQueryHandler(handler handlers.IotDevicePropertyQueryHandler) {
+func (device *iotDevice) SetPropertyQueryHandler(handler DevicePropertyQueryHandler) {
 	device.propertyQueryHandler = handler
 }
 
-//func (device *iotDevice) SetPropertiesQueryResponseHandler(handler handlers.IotDevicePropertyQueryResponseHandler) {
+//func (device *iotDevice) SetPropertiesQueryResponseHandler(handler samples.IotDevicePropertyQueryResponseHandler) {
 //	device.propertiesQueryResponseHandler = handler
 //}
 
@@ -276,27 +275,27 @@ func assembleClientId(device *iotDevice) string {
 	return strings.Join(segments, "_")
 }
 
-func CreateIotDevice(id, password, servers string) IotDevice {
+func CreateIotDevice(id, password, servers string) Device {
 	device := &iotDevice{}
 	device.Id = id
 	device.Password = password
 	device.Servers = servers
-	device.messageHandlers = []handlers.IotMessageHandler{}
-	device.commandHandlers = []handlers.IotCommandHandler{}
+	device.messageHandlers = []MessageHandler{}
+	device.commandHandlers = []CommandHandler{}
 
 	// 初始化设备相关的所有topic
 	device.topics = make(map[string]string)
-	device.topics[MessageDownTopicName] = TopicFormat(MessageDownTopic, id)
-	device.topics[CommandDownTopicName] = TopicFormat(CommandDownTopic, id)
-	device.topics[CommandResponseTopicName] = TopicFormat(CommandResponseTopic, id)
-	device.topics[MessageUpTopicName] = TopicFormat(MessageUpTopic, id)
-	device.topics[PropertiesUpTopicName] = TopicFormat(PropertiesUpTopic, id)
-	device.topics[PropertiesSetRequestTopicName] = TopicFormat(PropertiesSetRequestTopic, id)
-	device.topics[PropertiesSetResponseTopicName] = TopicFormat(PropertiesSetResponseTopic, id)
-	device.topics[PropertiesQueryRequestTopicName] = TopicFormat(PropertiesQueryRequestTopic, id)
-	device.topics[PropertiesQueryResponseTopicName] = TopicFormat(PropertiesQueryResponseTopic, id)
-	device.topics[DeviceShadowQueryRequestTopicName] = TopicFormat(DeviceShadowQueryRequestTopic, id)
-	device.topics[DeviceShadowQueryResponseTopicName] = TopicFormat(DeviceShadowQueryResponseTopic, id)
-	device.topics[GatewayBatchReportSubDeviceTopicName] = TopicFormat(GatewayBatchReportSubDeviceTopic, id)
+	device.topics[MessageDownTopicName] = FormatTopic(MessageDownTopic, id)
+	device.topics[CommandDownTopicName] = FormatTopic(CommandDownTopic, id)
+	device.topics[CommandResponseTopicName] = FormatTopic(CommandResponseTopic, id)
+	device.topics[MessageUpTopicName] = FormatTopic(MessageUpTopic, id)
+	device.topics[PropertiesUpTopicName] = FormatTopic(PropertiesUpTopic, id)
+	device.topics[PropertiesSetRequestTopicName] = FormatTopic(PropertiesSetRequestTopic, id)
+	device.topics[PropertiesSetResponseTopicName] = FormatTopic(PropertiesSetResponseTopic, id)
+	device.topics[PropertiesQueryRequestTopicName] = FormatTopic(PropertiesQueryRequestTopic, id)
+	device.topics[PropertiesQueryResponseTopicName] = FormatTopic(PropertiesQueryResponseTopic, id)
+	device.topics[DeviceShadowQueryRequestTopicName] = FormatTopic(DeviceShadowQueryRequestTopic, id)
+	device.topics[DeviceShadowQueryResponseTopicName] = FormatTopic(DeviceShadowQueryResponseTopic, id)
+	device.topics[GatewayBatchReportSubDeviceTopicName] = FormatTopic(GatewayBatchReportSubDeviceTopic, id)
 	return device
 }
