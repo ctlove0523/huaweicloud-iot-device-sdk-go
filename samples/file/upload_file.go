@@ -2,7 +2,6 @@ package main
 
 import (
 	iot "github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
-	"time"
 )
 
 func main() {
@@ -11,7 +10,4 @@ func main() {
 	device.Init()
 
 	device.UploadFile("D/software/mqttfx/chentong.txt")
-
-	time.Sleep(time.Hour)
-
 }

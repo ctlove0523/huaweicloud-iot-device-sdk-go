@@ -2,6 +2,20 @@
 
 huaweicloud-iot-device-sdk-go提供设备接入华为云IoT物联网平台的Go版本的SDK，提供设备和平台之间通讯能力，以及设备服务、网关服务、OTA等高级服务。IoT设备开发者使用SDK可以大大简化开发复杂度，快速的接入平台。
 
+支持如下功能：
+
+* [设备连接鉴权](#设备连接鉴权)
+
+* [设备命令](#设备命令) 
+
+* [设备消息](#设备消息)
+
+* [设备属性](#设备属性) 
+
+* [文件上传/下载管理](#文件上传/下载管理)
+
+  
+
 ## 安装和构建
 
 安装和构建的过程取决于你是使用go的 [modules](https://golang.org/ref/mod)(推荐) 还是还是`GOPATH`
@@ -31,7 +45,7 @@ go get github.com/ctlove0523/huaweicloud-iot-device-sdk-go
 
 ## 使用API
 
-### 创建设备并初始化
+### 设备连接鉴权
 
 1、首先，在华为云IoT平台创建一个设备，设备的信息如下：
 
@@ -62,7 +76,7 @@ func main() {
 
 > iot-mqtts.cn-north-4.myhuaweicloud.com为华为IoT平台（基础班）在华为云北京四的访问端点，如果你购买了标准版或企业版，请将iot-mqtts.cn-north-4.myhuaweicloud.com更换为对应的MQTT协议接入端点。
 
-### 设备处理平台下发的命令
+### 设备命令
 
 1、首先，在华为云IoT平台创建一个设备，设备的信息如下：
 
@@ -433,6 +447,19 @@ type DemoProperties struct {
 	MsgType string `json:"msgType"`
 }
 ~~~
+
+### 文件上传/下载管理
+
+#### 文件上传
+
+~~~go
+device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "xxx", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
+device.Init()
+
+device.UploadFile("D/software/mqttfx/chentong.txt")
+~~~
+
+
 
 ## 报告bugs
 
