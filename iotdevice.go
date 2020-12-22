@@ -2,6 +2,7 @@ package iot
 
 import (
 	"encoding/json"
+	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/golang/glog"
 	"github.com/satori/go.uuid"
@@ -20,6 +21,7 @@ type Device interface {
 	AddCommandHandler(handler CommandHandler)
 	AddPropertiesSetHandler(handler DevicePropertiesSetHandler)
 	SetPropertyQueryHandler(handler DevicePropertyQueryHandler)
+	UploadFile(filename string) bool
 }
 
 type iotDevice struct {
@@ -33,6 +35,75 @@ type iotDevice struct {
 	propertyQueryHandler           DevicePropertyQueryHandler
 	propertiesQueryResponseHandler DevicePropertyQueryResponseHandler
 	topics                         map[string]string
+}
+
+type FileAtt struct {
+	HashCode string `json:"hash_code"`
+	Size     int    `json:"size"`
+}
+
+func (device *iotDevice) UploadFile(filename string) bool {
+	// first subscribe
+	uploadUrlChan := make(chan string)
+
+	device.client.Subscribe(device.topics[FileUploadUrlResponseTopicName], 1, func(client mqtt.Client, message mqtt.Message) {
+		response := &FileUploadUrlResponse{}
+		if json.Unmarshal(message.Payload(), response) != nil {
+			glog.Errorf("unmarshal file upload response failed")
+			uploadUrlChan <- ""
+		} else {
+			uploadUrlChan <- response.Services[0].Paras.Url
+		}
+	})
+
+	// 构造获取文件上传URL的请求
+	requestParas := UploadRequestServiceEventParas{
+		FileName: filename,
+	}
+
+	serviceEvent := UploadRequestServiceEvent{
+		Paras: requestParas,
+	}
+	serviceEvent.ServiceId = "$file_manager"
+	serviceEvent.EventTime = GetEventTimeStamp()
+	serviceEvent.EventType = "get_upload_url"
+
+	var services []UploadRequestServiceEvent
+	services = append(services, serviceEvent)
+	request := FileUploadUrlRequest{
+		Services: services,
+	}
+
+	if token := device.client.Publish(device.topics[FileUploadUrlRequestTopicName], 1, false, Interface2JsonString(request));
+		token.Wait() && token.Error() != nil {
+		glog.Warningf("publish file upload request url failed")
+		return false
+	}
+
+	upLoadUrl := <-uploadUrlChan
+
+	if len(upLoadUrl) == 0 {
+		glog.Errorf("get file upload url failed")
+		return false
+	}
+	glog.Infof("file upload url is %s", upLoadUrl)
+
+	filename = SmartFileName(filename)
+	uploadFlag := CreateHttpClient().UploadFile(filename, upLoadUrl)
+	if !uploadFlag {
+		glog.Errorf("upload file failed")
+		return false
+	}
+
+	response := CreateFileUploadResultResponse(filename, uploadFlag)
+
+	token := device.client.Publish(device.topics[FileUploadResultTopicName], 1, false, Interface2JsonString(response))
+	if token.Wait() && token.Error() != nil {
+		glog.Error("report file upload file result failed")
+		return false
+	}
+
+	return true
 }
 
 func (device *iotDevice) createMessageMqttHandler() func(client mqtt.Client, message mqtt.Message) {
@@ -141,6 +212,8 @@ func (device *iotDevice) Init() bool {
 	options.SetClientID(assembleClientId(device))
 	options.SetUsername(device.Id)
 	options.SetPassword(HmacSha256(device.Password, TimeStamp()))
+	fmt.Println(assembleClientId(device))
+	fmt.Println(HmacSha256(device.Password, TimeStamp()))
 
 	device.client = mqtt.NewClient(options)
 
@@ -249,6 +322,9 @@ func CreateIotDevice(id, password, servers string) Device {
 	device.topics[DeviceShadowQueryRequestTopicName] = FormatTopic(DeviceShadowQueryRequestTopic, id)
 	device.topics[DeviceShadowQueryResponseTopicName] = FormatTopic(DeviceShadowQueryResponseTopic, id)
 	device.topics[GatewayBatchReportSubDeviceTopicName] = FormatTopic(GatewayBatchReportSubDeviceTopic, id)
+	device.topics[FileUploadUrlRequestTopicName] = FormatTopic(FileUploadUrlRequestTopic, id)
+	device.topics[FileUploadUrlResponseTopicName] = FormatTopic(FileUploadUrlResponseTopic, id)
+	device.topics[FileUploadResultTopicName] = FormatTopic(FileUploadResultTopic, id)
 	return device
 }
 
@@ -264,7 +340,7 @@ func assembleClientId(device *iotDevice) string {
 
 func logFlush() {
 	ticker := time.Tick(5 * time.Second)
-	for{
+	for {
 		select {
 		case <-ticker:
 			glog.Flush()

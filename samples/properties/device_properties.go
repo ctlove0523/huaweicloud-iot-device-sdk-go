@@ -34,7 +34,7 @@ func main() {
 	// 设备上报属性
 	props := iot.ServicePropertyEntry{
 		ServiceId: "value",
-		EventTime: iot.DataCollectionTime(),
+		EventTime: iot.GetEventTimeStamp(),
 		Properties: DemoProperties{
 			Value:   "chen tong",
 			MsgType: "23",

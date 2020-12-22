@@ -23,19 +23,26 @@ const (
 	PropertiesSetResponseTopic     string = "$oc/devices/{device_id}/sys/properties/set/response/request_id="
 
 	// 平台查询设备属性
-	PropertiesQueryRequestTopicName string = "propertiesQueryRequestTopicName"
-	PropertiesQueryRequestTopic     string = "$oc/devices/{device_id}/sys/properties/get/#"
+	PropertiesQueryRequestTopicName  string = "propertiesQueryRequestTopicName"
+	PropertiesQueryRequestTopic      string = "$oc/devices/{device_id}/sys/properties/get/#"
 	PropertiesQueryResponseTopicName string = "propertiesQueryResponseTopicName"
 	PropertiesQueryResponseTopic     string = "$oc/devices/{device_id}/sys/properties/get/response/request_id="
 
 	// 设备侧获取平台的设备影子数据
-	DeviceShadowQueryRequestTopicName string = "deviceShadowQueryRequestTopicName"
-	DeviceShadowQueryRequestTopic string = "$oc/devices/{device_id}/sys/shadow/get/request_id="
+	DeviceShadowQueryRequestTopicName  string = "deviceShadowQueryRequestTopicName"
+	DeviceShadowQueryRequestTopic      string = "$oc/devices/{device_id}/sys/shadow/get/request_id="
 	DeviceShadowQueryResponseTopicName string = "deviceShadowQueryResponseTopicName"
-	DeviceShadowQueryResponseTopic string = "$oc/devices/{device_id}/sys/shadow/get/response/#"
+	DeviceShadowQueryResponseTopic     string = "$oc/devices/{device_id}/sys/shadow/get/response/#"
 
 	// 网关批量上报子设备属性
 	GatewayBatchReportSubDeviceTopicName string = "gatewayBatchReportSubDeviceTopicName"
-	GatewayBatchReportSubDeviceTopic string = "$oc/devices/{device_id}/sys/gateway/sub_devices/properties/report"
-)
+	GatewayBatchReportSubDeviceTopic     string = "$oc/devices/{device_id}/sys/gateway/sub_devices/properties/report"
 
+	// 文件上传
+	FileUploadUrlRequestTopicName  string = "fileUploadUrlRequestTopicName"
+	FileUploadUrlRequestTopic      string = "$oc/devices/{device_id}/sys/events/up"
+	FileUploadUrlResponseTopicName string = "fileUploadUrlResponseTopicName"
+	FileUploadUrlResponseTopic     string = "$oc/devices/{device_id}/sys/events/down"
+	FileUploadResultTopicName      string = "FileUploadResultTopic"
+	FileUploadResultTopic          string = "$oc/devices/{device_id}/sys/events/up"
+)

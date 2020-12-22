@@ -119,3 +119,90 @@ type DeviceService struct {
 	DeviceId string                 `json:"device_id"`
 	Services []ServicePropertyEntry `json:"services"`
 }
+
+// 文件上传下载管理
+
+func CreateFileUploadResultResponse(filename string, result bool) FileUploadResultResponse {
+	code := 0
+	if result {
+		code = 0
+	} else {
+		code = 1
+	}
+	paras := UploadFileResultResponseServiceEventParas{
+		ObjectName: filename,
+		ResultCode: code,
+	}
+
+	serviceEvent := UploadResultResponseServiceEvent{
+		Paras: paras,
+	}
+	serviceEvent.ServiceId = "$file_manager"
+	serviceEvent.EventType = "upload_result_report"
+	serviceEvent.EventTime = GetEventTimeStamp()
+
+	var services []UploadResultResponseServiceEvent
+	services = append(services, serviceEvent)
+
+	response := FileUploadResultResponse{
+		Services: services,
+	}
+
+	return response
+}
+
+type FileUploadUrlRequest struct {
+	ObjectDeviceId string                      `json:"object_device_id"`
+	Services       []UploadRequestServiceEvent `json:"services"`
+}
+
+type FileUploadUrlResponse struct {
+	ObjectDeviceId string                       `json:"object_device_id"`
+	Services       []UploadResponseServiceEvent `json:"services"`
+}
+
+type FileUploadResultResponse struct {
+	ObjectDeviceId string                             `json:"object_device_id"`
+	Services       []UploadResultResponseServiceEvent `json:"services"`
+}
+
+type BaseServiceEvent struct {
+	ServiceId string `json:"service_id"`
+	EventType string `json:"event_type"`
+	EventTime string `json:"event_time"`
+}
+
+type UploadRequestServiceEvent struct {
+	BaseServiceEvent
+	Paras UploadRequestServiceEventParas `json:"paras"`
+}
+
+type UploadResponseServiceEvent struct {
+	BaseServiceEvent
+	Paras UploadResponseServiceEventParas `json:"paras"`
+}
+
+type UploadResultResponseServiceEvent struct {
+	BaseServiceEvent
+	Paras UploadFileResultResponseServiceEventParas `json:"paras"`
+}
+
+type UploadRequestServiceEventParas struct {
+	FileName       string      `json:"file_name"`
+	FileAttributes interface{} `json:"file_attributes"`
+}
+
+type UploadResponseServiceEventParas struct {
+	Url            string      `json:"url"`
+	BucketName     string      `json:"bucket_name"`
+	ObjectName     string      `json:"object_name"`
+	Expire         int         `json:"expire"`
+	FileAttributes interface{} `json:"file_attributes"`
+}
+
+type UploadFileResultResponseServiceEventParas struct {
+	ObjectName        string `json:"object_name"`
+	ResultCode        int    `json:"result_code"`
+	StatusCode        int    `json:"status_code"`
+	StatusDescription string `json:"status_description"`
+}

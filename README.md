@@ -2,15 +2,16 @@
 
 huaweicloud-iot-device-sdk-go提供设备接入华为云IoT物联网平台的Go版本的SDK，提供设备和平台之间通讯能力，以及设备服务、网关服务、OTA等高级服务。IoT设备开发者使用SDK可以大大简化开发复杂度，快速的接入平台。
 
-
-
 ## 安装和构建
 
-安装和构建的过程取决于你是使用go的 [modules](https://golang.org/ref/mod)(推荐) 还是还是`GOPATH` 
+安装和构建的过程取决于你是使用go的 [modules](https://golang.org/ref/mod)(推荐) 还是还是`GOPATH`
 
 ### Modules
 
-如果你使用 [modules](https://golang.org/ref/mod) 只需要导入包"github.com/ctlove0523/huaweicloud-iot-device-sdk-go"即可使用。当你使用go build命令构建项目时，依赖的包会自动被下载。注意使用go build命令构建时会自动下载最新版本，最新版本还没有达到release的标准可能存在一些尚未修复的bug。如果想使用稳定的发布版本可以从[release](https://github.com/ctlove0523/huaweicloud-iot-device-sdk-go/releases) 获取最新稳定的版本号，并在go.mod文件中指定版本号。
+如果你使用 [modules](https://golang.org/ref/mod) 只需要导入包"github.com/ctlove0523/huaweicloud-iot-device-sdk-go"即可使用。当你使用go
+build命令构建项目时，依赖的包会自动被下载。注意使用go
+build命令构建时会自动下载最新版本，最新版本还没有达到release的标准可能存在一些尚未修复的bug。如果想使用稳定的发布版本可以从[release](https://github.com/ctlove0523/huaweicloud-iot-device-sdk-go/releases)
+获取最新稳定的版本号，并在go.mod文件中指定版本号。
 
 ~~~go
 module example
@@ -27,8 +28,6 @@ require github.com/ctlove0523/huaweicloud-iot-device-sdk-go v0.0.1-alpha
 ~~~go
 go get github.com/ctlove0523/huaweicloud-iot-device-sdk-go
 ~~~
-
-
 
 ## 使用API
 
@@ -62,8 +61,6 @@ func main() {
 ~~~
 
 > iot-mqtts.cn-north-4.myhuaweicloud.com为华为IoT平台（基础班）在华为云北京四的访问端点，如果你购买了标准版或企业版，请将iot-mqtts.cn-north-4.myhuaweicloud.com更换为对应的MQTT协议接入端点。
-
-
 
 ### 设备处理平台下发的命令
 
@@ -142,8 +139,6 @@ func main() {
 	time.Sleep(1 * time.Minute)
 }
 ~~~
-
-
 
 > 设备支持的命令定义在产品中
 
@@ -232,8 +227,6 @@ func main() {
 }
 ~~~
 
-
-
 ### 设备属性
 
 1、首先，在华为云IoT平台创建一个设备，并在该设备下创建3个子设备，设备及子设备的信息如下：
@@ -257,8 +250,6 @@ device.Init()
 fmt.Printf("device connected: %v\n", device.IsConnected())
 ~~~
 
-
-
 #### 设备属性上报
 
 使用`ReportProperties(properties ServiceProperty) bool` 上报设备属性
@@ -281,8 +272,6 @@ services := iot.ServiceProperty{
 }
 device.ReportProperties(services)
 ~~~
-
-
 
 #### 网关批量设备属性上报
 
@@ -312,8 +301,6 @@ device.BatchReportSubDevicesProperties(iot.DevicesService{
 })
 ~~~
 
-
-
 #### 平台设置设备属性
 
 使用`AddPropertiesSetHandler(handler DevicePropertiesSetHandler)` 注册平台设置设备属性handler，当接收到平台的命令时SDK回调。
@@ -326,8 +313,6 @@ device.AddPropertiesSetHandler(func(propertiesSetRequest iot.DevicePropertyDownR
 	return true
 })
 ~~~
-
-
 
 #### 平台查询设备属性
 
@@ -347,11 +332,10 @@ device.SetPropertyQueryHandler(func(query iot.DevicePropertyQueryRequest) iot.Se
 })
 ~~~
 
-
-
 #### 设备侧获取平台的设备影子数据
 
-使用`QueryDeviceShadow(query DevicePropertyQueryRequest, handler DevicePropertyQueryResponseHandler)` 可以查询平台的设备影子数据，当接收到平台的响应后SDK自动回调`DevicePropertyQueryResponseHandler`。
+使用`QueryDeviceShadow(query DevicePropertyQueryRequest, handler DevicePropertyQueryResponseHandler)`
+可以查询平台的设备影子数据，当接收到平台的响应后SDK自动回调`DevicePropertyQueryResponseHandler`。
 
 ~~~go
 // 设备查询设备影子数据
@@ -449,8 +433,6 @@ type DemoProperties struct {
 	MsgType string `json:"msgType"`
 }
 ~~~
-
-
 
 ## 报告bugs
 
