@@ -122,48 +122,49 @@ type DeviceService struct {
 
 // 文件上传下载管理
 
-func CreateFileUploadResultResponse(filename string, result bool) FileUploadResultResponse {
+func CreateFileUploadResultResponse(filename string, result bool) FileResultResponse {
 	code := 0
-	if result {
-		code = 0
-	} else {
+	if !result {
 		code = 1
 	}
-	paras := UploadFileResultResponseServiceEventParas{
+
+	paras := FileResultServiceEventParas{
 		ObjectName: filename,
 		ResultCode: code,
 	}
 
-	serviceEvent := UploadResultResponseServiceEvent{
+	serviceEvent := FileResultResponseServiceEvent{
 		Paras: paras,
 	}
 	serviceEvent.ServiceId = "$file_manager"
 	serviceEvent.EventType = "upload_result_report"
 	serviceEvent.EventTime = GetEventTimeStamp()
 
-	var services []UploadResultResponseServiceEvent
+	var services []FileResultResponseServiceEvent
 	services = append(services, serviceEvent)
 
-	response := FileUploadResultResponse{
+	response := FileResultResponse{
 		Services: services,
 	}
 
 	return response
 }
 
-type FileUploadUrlRequest struct {
-	ObjectDeviceId string                      `json:"object_device_id"`
-	Services       []UploadRequestServiceEvent `json:"services"`
+// 设备获取文件上传下载请求体
+type FileRequest struct {
+	ObjectDeviceId string                    `json:"object_device_id"`
+	Services       []FileRequestServiceEvent `json:"services"`
 }
 
-type FileUploadUrlResponse struct {
-	ObjectDeviceId string                       `json:"object_device_id"`
-	Services       []UploadResponseServiceEvent `json:"services"`
+// 平台下发文件上传和下载URL响应
+type FileResponse struct {
+	ObjectDeviceId string                     `json:"object_device_id"`
+	Services       []FileResponseServiceEvent `json:"services"`
 }
 
-type FileUploadResultResponse struct {
-	ObjectDeviceId string                             `json:"object_device_id"`
-	Services       []UploadResultResponseServiceEvent `json:"services"`
+type FileResultResponse struct {
+	ObjectDeviceId string                           `json:"object_device_id"`
+	Services       []FileResultResponseServiceEvent `json:"services"`
 }
 
 type BaseServiceEvent struct {
@@ -172,27 +173,29 @@ type BaseServiceEvent struct {
 	EventTime string `json:"event_time"`
 }
 
-type UploadRequestServiceEvent struct {
+type FileRequestServiceEvent struct {
 	BaseServiceEvent
-	Paras UploadRequestServiceEventParas `json:"paras"`
+	Paras FileRequestServiceEventParas `json:"paras"`
 }
 
-type UploadResponseServiceEvent struct {
+type FileResponseServiceEvent struct {
 	BaseServiceEvent
-	Paras UploadResponseServiceEventParas `json:"paras"`
+	Paras FileResponseServiceEventParas `json:"paras"`
 }
 
-type UploadResultResponseServiceEvent struct {
+type FileResultResponseServiceEvent struct {
 	BaseServiceEvent
-	Paras UploadFileResultResponseServiceEventParas `json:"paras"`
+	Paras FileResultServiceEventParas `json:"paras"`
 }
 
-type UploadRequestServiceEventParas struct {
+// 设备获取文件上传下载URL参数
+type FileRequestServiceEventParas struct {
 	FileName       string      `json:"file_name"`
 	FileAttributes interface{} `json:"file_attributes"`
 }
 
-type UploadResponseServiceEventParas struct {
+// 平台下发响应参数
+type FileResponseServiceEventParas struct {
 	Url            string      `json:"url"`
 	BucketName     string      `json:"bucket_name"`
 	ObjectName     string      `json:"object_name"`
@@ -200,7 +203,8 @@ type UploadResponseServiceEventParas struct {
 	FileAttributes interface{} `json:"file_attributes"`
 }
 
-type UploadFileResultResponseServiceEventParas struct {
+// 上报文件上传下载结果参数
+type FileResultServiceEventParas struct {
 	ObjectName        string `json:"object_name"`
 	ResultCode        int    `json:"result_code"`
 	StatusCode        int    `json:"status_code"`
