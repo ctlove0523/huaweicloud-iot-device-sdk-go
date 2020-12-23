@@ -122,7 +122,7 @@ type DeviceService struct {
 
 // 文件上传下载管理
 
-func CreateFileUploadResultResponse(filename string, result bool) FileResultResponse {
+func CreateFileUploadDownLoadResultResponse(filename, action string, result bool) FileResultResponse {
 	code := 0
 	if !result {
 		code = 1
@@ -137,7 +137,12 @@ func CreateFileUploadResultResponse(filename string, result bool) FileResultResp
 		Paras: paras,
 	}
 	serviceEvent.ServiceId = "$file_manager"
-	serviceEvent.EventType = "upload_result_report"
+	if action == FILE_ACTION_DOWNLOAD {
+		serviceEvent.EventType = "download_result_report"
+	}
+	if action == FILE_ACTION_UPLOAD {
+		serviceEvent.EventType = "upload_result_report"
+	}
 	serviceEvent.EventTime = GetEventTimeStamp()
 
 	var services []FileResultResponseServiceEvent

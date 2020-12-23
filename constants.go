@@ -39,10 +39,13 @@ const (
 	GatewayBatchReportSubDeviceTopic     string = "$oc/devices/{device_id}/sys/gateway/sub_devices/properties/report"
 
 	// 文件上传请求：获取上传和下载URL，上报结果
-	FileUploadRequestTopicName string = "fileUploadRequestTopicName"
-	FileUploadRequestTopic     string = "$oc/devices/{device_id}/sys/events/up"
+	FileRequestTopicName string = "fileUploadRequestTopicName"
+	FileRequestTopic     string = "$oc/devices/{device_id}/sys/events/up"
 
 	// 平台下发文件上传和下载URL
-	FileUploadResponseTopic string = "$oc/devices/{device_id}/sys/events/down"
-	FileUploadTopicName     string = "FileUploadResultTopic"
+	FileResponseTopicName string = "FileUploadResultTopic"
+	FileResponseTopic     string = "$oc/devices/{device_id}/sys/events/down"
+
+	FILE_ACTION_UPLOAD   string = "upload"
+	FILE_ACTION_DOWNLOAD string = "download"
 )

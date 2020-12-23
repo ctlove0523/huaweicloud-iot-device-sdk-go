@@ -56,7 +56,7 @@ func SmartFileName(filename string) string {
 	if strings.Contains(OsName(), "windows") {
 		pathParts := strings.Split(filename, "/")
 		pathParts[0] = pathParts[0] + ":"
-		return strings.Join(pathParts, "\\\\")
+		return strings.Join(pathParts, "\\")
 	}
 
 	return filename

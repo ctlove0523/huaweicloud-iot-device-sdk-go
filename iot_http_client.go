@@ -2,6 +2,7 @@ package iot
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/golang/glog"
 	"io"
 	"io/ioutil"
@@ -15,14 +16,59 @@ import (
 // 仅用于设备上传文件
 type HttpClient interface {
 	UploadFile(filename, uri string) bool
+	DownloadFile(filename, uri string) bool
 }
 
 type httpClient struct {
 	client *http.Client
 }
 
-func (client *httpClient) UploadFile(filename, uri string) bool {
+func (client *httpClient) DownloadFile(fileName, downloadUrl string) bool {
+	fmt.Println(downloadUrl)
+	fileName = SmartFileName(fileName)
+	out, err := os.Create(fileName)
+	if err != nil {
+		glog.Errorf("create file in os failed ,file name %s", fileName)
+		return false
+	}
+	defer out.Close()
 
+	bodyBuffer := &bytes.Buffer{}
+	req, err := http.NewRequest("GET", downloadUrl, bodyBuffer)
+	if err != nil {
+		glog.Errorf("create request filed %v", err)
+		return false
+	}
+
+	req.Header.Add("Content-Type", "text/plain")
+
+	originalUri, err := url.ParseRequestURI(downloadUrl)
+	if err != nil {
+		glog.Errorf("parse request uri failed %v", err)
+		return false
+	}
+	req.Header.Add("Host", originalUri.Host)
+
+	res, err := client.client.Do(req)
+	if err != nil {
+		glog.Errorf("down load file error")
+		return false
+	}
+	buf := make([]byte, 1024)
+	for {
+		size, _ := res.Body.Read(buf)
+		if size == 0 {
+			break
+		} else {
+			_, _ = out.Write(buf[:size])
+		}
+	}
+
+	return true
+}
+
+func (client *httpClient) UploadFile(filename, uri string) bool {
+	filename = SmartFileName(filename)
 	bodyBuffer := &bytes.Buffer{}
 	bodyWriter := multipart.NewWriter(bodyBuffer)
 
@@ -66,7 +112,7 @@ func (client *httpClient) UploadFile(filename, uri string) bool {
 
 	_, err = ioutil.ReadAll(resp.Body)
 
-	return err == nil
+	return nil == err
 }
 
 func CreateHttpClient() HttpClient {
