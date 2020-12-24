@@ -11,6 +11,7 @@ import (
 
 type Gateway interface {
 	UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) bool
+	DeleteSubDevices(deviceIds []string) bool
 }
 
 type Device interface {
@@ -41,6 +42,37 @@ type iotDevice struct {
 	propertiesQueryResponseHandler DevicePropertyQueryResponseHandler
 	topics                         map[string]string
 	fileUrls                       map[string]string
+}
+
+func (device *iotDevice) DeleteSubDevices(deviceIds []string) bool {
+	glog.Infof("begin to delete sub-devices %s", deviceIds)
+
+	subDevices := struct {
+		Devices []string `json:"devices"`
+	}{
+		Devices: deviceIds,
+	}
+
+	requestEventService := RequestEventService{
+		ServiceId: "$sub_device_manager",
+		EventType: "delete_sub_device_request",
+		EventTime: GetEventTimeStamp(),
+		Paras:     subDevices,
+	}
+
+	request := Request{
+		ObjectDeviceId: device.Id,
+		Services:       []RequestEventService{requestEventService},
+	}
+
+	if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 1, false, Interface2JsonString(request));
+		token.Wait() && token.Error() != nil {
+		glog.Warningf("gateway %s delete sub devices request send failed", device.Id)
+		return false
+	}
+
+	glog.Warningf("gateway %s delete sub devices request send success", device.Id)
+	return true
 }
 
 func (device *iotDevice) UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) bool {
