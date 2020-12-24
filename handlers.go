@@ -137,10 +137,10 @@ func CreateFileUploadDownLoadResultResponse(filename, action string, result bool
 		Paras: paras,
 	}
 	serviceEvent.ServiceId = "$file_manager"
-	if action == FILE_ACTION_DOWNLOAD {
+	if action == FileActionDownload {
 		serviceEvent.EventType = "download_result_report"
 	}
-	if action == FILE_ACTION_UPLOAD {
+	if action == FileActionUpload {
 		serviceEvent.EventType = "upload_result_report"
 	}
 	serviceEvent.EventTime = GetEventTimeStamp()

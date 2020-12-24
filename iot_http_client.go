@@ -2,7 +2,6 @@ package iot
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/golang/glog"
 	"io"
 	"io/ioutil"
@@ -24,7 +23,7 @@ type httpClient struct {
 }
 
 func (client *httpClient) DownloadFile(fileName, downloadUrl string) bool {
-	fmt.Println(downloadUrl)
+	glog.Infof("begin to download file %s, url = %s", fileName, downloadUrl)
 	fileName = SmartFileName(fileName)
 	out, err := os.Create(fileName)
 	if err != nil {

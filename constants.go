@@ -46,6 +46,9 @@ const (
 	FileResponseTopicName string = "FileUploadResultTopic"
 	FileResponseTopic     string = "$oc/devices/{device_id}/sys/events/down"
 
-	FILE_ACTION_UPLOAD   string = "upload"
-	FILE_ACTION_DOWNLOAD string = "download"
+	FileActionUpload   string = "upload"
+	FileActionDownload string = "download"
+
+	// 设备或网关向平台发送请求
+	DeviceToPlatformTopic string = "$oc/devices/{device_id}/sys/events/up"
 )

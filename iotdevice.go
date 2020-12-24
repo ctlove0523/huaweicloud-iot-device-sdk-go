@@ -2,7 +2,6 @@ package iot
 
 import (
 	"encoding/json"
-	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/golang/glog"
 	"github.com/satori/go.uuid"
@@ -10,7 +9,12 @@ import (
 	"time"
 )
 
+type Gateway interface {
+	UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) bool
+}
+
 type Device interface {
+	Gateway
 	Init() bool
 	IsConnected() bool
 	SendMessage(message Message) bool
@@ -37,6 +41,31 @@ type iotDevice struct {
 	propertiesQueryResponseHandler DevicePropertyQueryResponseHandler
 	topics                         map[string]string
 	fileUrls                       map[string]string
+}
+
+func (device *iotDevice) UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) bool {
+	glog.Infof("begin to update sub-devices status")
+
+	requestEventService := RequestEventService{
+		ServiceId: "$sub_device_manager",
+		EventType: "sub_device_update_status",
+		EventTime: GetEventTimeStamp(),
+		Paras:     subDevicesStatus,
+	}
+
+	request := Request{
+		ObjectDeviceId: device.Id,
+		Services:       []RequestEventService{requestEventService},
+	}
+
+	if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 1, false, Interface2JsonString(request));
+		token.Wait() && token.Error() != nil {
+		glog.Warningf("gateway %s update sub devices status failed", device.Id)
+		return false
+	}
+
+	glog.Info("gateway %s update sub devices status failed", device.Id)
+	return true
 }
 
 func (device *iotDevice) DownloadFile(filename string) bool {
@@ -68,30 +97,28 @@ func (device *iotDevice) DownloadFile(filename string) bool {
 	for {
 		select {
 		case <-ticker:
-			_, ok := device.fileUrls[filename+FILE_ACTION_DOWNLOAD]
+			_, ok := device.fileUrls[filename+FileActionDownload]
 			if ok {
 				glog.Infof("platform send file upload url success")
 				goto ENDFOR
-			} else {
-				fmt.Println("get url failed")
 			}
 
 		}
 	}
 ENDFOR:
 
-	if len(device.fileUrls[filename+FILE_ACTION_DOWNLOAD]) == 0 {
+	if len(device.fileUrls[filename+FileActionDownload]) == 0 {
 		glog.Errorf("get file download url failed")
 		return false
 	}
 
-	downloadFlag := CreateHttpClient().DownloadFile(filename, device.fileUrls[filename+FILE_ACTION_DOWNLOAD])
+	downloadFlag := CreateHttpClient().DownloadFile(filename, device.fileUrls[filename+FileActionDownload])
 	if downloadFlag {
 		glog.Errorf("down load file { %s } failed", filename)
 		return false
 	}
 
-	response := CreateFileUploadDownLoadResultResponse(filename, FILE_ACTION_DOWNLOAD, downloadFlag)
+	response := CreateFileUploadDownLoadResultResponse(filename, FileActionDownload, downloadFlag)
 
 	token := device.client.Publish(device.topics[FileResponseTopicName], 1, false, Interface2JsonString(response))
 	if token.Wait() && token.Error() != nil {
@@ -125,40 +152,37 @@ func (device *iotDevice) UploadFile(filename string) bool {
 		token.Wait() && token.Error() != nil {
 		glog.Warningf("publish file upload request url failed")
 		return false
-	} else {
-		fmt.Println("send request success")
 	}
+	glog.Info("publish file upload request url success")
 
 	ticker := time.Tick(time.Second)
 	for {
 		select {
 		case <-ticker:
-			_, ok := device.fileUrls[filename+FILE_ACTION_UPLOAD]
+			_, ok := device.fileUrls[filename+FileActionUpload]
 			if ok {
 				glog.Infof("platform send file upload url success")
 				goto ENDFOR
-			} else {
-				fmt.Println("get url failed")
 			}
 
 		}
 	}
 ENDFOR:
 
-	if len(device.fileUrls[filename+FILE_ACTION_UPLOAD]) == 0 {
+	if len(device.fileUrls[filename+FileActionUpload]) == 0 {
 		glog.Errorf("get file upload url failed")
 		return false
 	}
-	glog.Infof("file upload url is %s", device.fileUrls[filename+FILE_ACTION_UPLOAD])
+	glog.Infof("file upload url is %s", device.fileUrls[filename+FileActionUpload])
 
 	//filename = SmartFileName(filename)
-	uploadFlag := CreateHttpClient().UploadFile(filename, device.fileUrls[filename+FILE_ACTION_UPLOAD])
+	uploadFlag := CreateHttpClient().UploadFile(filename, device.fileUrls[filename+FileActionUpload])
 	if !uploadFlag {
 		glog.Errorf("upload file failed")
 		return false
 	}
 
-	response := CreateFileUploadDownLoadResultResponse(filename, FILE_ACTION_UPLOAD, uploadFlag)
+	response := CreateFileUploadDownLoadResultResponse(filename, FileActionUpload, uploadFlag)
 
 	token := device.client.Publish(device.topics[FileResponseTopicName], 1, false, Interface2JsonString(response))
 	if token.Wait() && token.Error() != nil {
@@ -248,10 +272,10 @@ func (device *iotDevice) createFileUrlResponseMqttHandler() func(client mqtt.Cli
 
 		fileName := response.Services[0].Paras.ObjectName
 		eventType := response.Services[0].EventType
-		if strings.Contains(eventType, FILE_ACTION_UPLOAD) {
-			device.fileUrls[fileName+FILE_ACTION_UPLOAD] = response.Services[0].Paras.Url
+		if strings.Contains(eventType, FileActionUpload) {
+			device.fileUrls[fileName+FileActionUpload] = response.Services[0].Paras.Url
 		} else {
-			device.fileUrls[fileName+FILE_ACTION_DOWNLOAD] = response.Services[0].Paras.Url
+			device.fileUrls[fileName+FileActionDownload] = response.Services[0].Paras.Url
 		}
 
 	}
@@ -295,8 +319,6 @@ func (device *iotDevice) Init() bool {
 	options.SetClientID(assembleClientId(device))
 	options.SetUsername(device.Id)
 	options.SetPassword(HmacSha256(device.Password, TimeStamp()))
-	fmt.Println(assembleClientId(device))
-	fmt.Println(HmacSha256(device.Password, TimeStamp()))
 
 	device.client = mqtt.NewClient(options)
 
