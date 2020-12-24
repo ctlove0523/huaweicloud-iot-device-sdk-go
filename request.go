@@ -22,3 +22,9 @@ type DeviceStatus struct {
 	DeviceId string `json:"device_id"`
 	Status   string `json:"status"` // 子设备状态。 OFFLINE：设备离线 ONLINE：设备上线
 }
+
+// 添加子设备
+type DeviceInfo struct {
+	NodeId    string `json:"node_id"`
+	ProductId string `json:"product_id"`
+}

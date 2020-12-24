@@ -12,6 +12,7 @@ import (
 type Gateway interface {
 	UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) bool
 	DeleteSubDevices(deviceIds []string) bool
+	AddSubDevices(deviceInfos []DeviceInfo) bool
 }
 
 type Device interface {
@@ -42,6 +43,35 @@ type iotDevice struct {
 	propertiesQueryResponseHandler DevicePropertyQueryResponseHandler
 	topics                         map[string]string
 	fileUrls                       map[string]string
+}
+
+func (device *iotDevice) AddSubDevices(deviceInfos []DeviceInfo) bool {
+	devices := struct {
+		Devices []DeviceInfo `json:"devices"`
+	}{
+		Devices: deviceInfos,
+	}
+
+	requestEventService := RequestEventService{
+		ServiceId: "$sub_device_manager",
+		EventType: "add_sub_device_request",
+		EventTime: GetEventTimeStamp(),
+		Paras:     devices,
+	}
+
+	request := Request{
+		ObjectDeviceId: device.Id,
+		Services:       []RequestEventService{requestEventService},
+	}
+
+	if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 1, false, Interface2JsonString(request));
+		token.Wait() && token.Error() != nil {
+		glog.Warningf("gateway %s add sub devices request send failed", device.Id)
+		return false
+	}
+
+	glog.Warningf("gateway %s add sub devices request send success", device.Id)
+	return true
 }
 
 func (device *iotDevice) DeleteSubDevices(deviceIds []string) bool {

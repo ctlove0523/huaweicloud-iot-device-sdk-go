@@ -9,7 +9,7 @@ func main() {
 	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
 	device.Init()
 
-	TestDeleteSubDevices(device, []string{"5fdb75cccbfe2f02ce81d4bf_sub-device-3"})
+	TestAddSubDevices(device)
 }
 
 func TestUpdateSubDeviceState(device iot.Device) {
@@ -39,11 +39,32 @@ func TestUpdateSubDeviceState(device iot.Device) {
 	}
 }
 
-func TestDeleteSubDevices(device iot.Device, deviceIds []string) {
+func TestDeleteSubDevices(device iot.Device) {
 	ok := device.DeleteSubDevices([]string{"5fdb75cccbfe2f02ce81d4bf_sub-device-3"})
 	if ok {
 		fmt.Println("gateway send sub devices request success.")
 	} else {
 		fmt.Println("gateway send sub devices request failed.")
 	}
+}
+
+func TestAddSubDevices(device iot.Device) {
+	subDevices := []iot.DeviceInfo{{
+		NodeId:    "sub-device-3",
+		ProductId: "5fdb75cccbfe2f02ce81d4bf",
+	}, {
+		NodeId:    "sub-device-4",
+		ProductId: "5fdb75cccbfe2f02ce81d4bf",
+	}, {
+		NodeId:    "sub-device-5",
+		ProductId: "5fdb75cccbfe2f02ce81d4bf",
+	}}
+
+	ok := device.AddSubDevices(subDevices)
+	if ok {
+		fmt.Println("gateway add sub-devices success")
+	} else {
+		fmt.Println("gateway add sub-devices failed")
+	}
+
 }
