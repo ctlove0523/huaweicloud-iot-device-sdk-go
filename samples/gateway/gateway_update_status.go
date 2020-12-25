@@ -3,13 +3,20 @@ package main
 import (
 	"fmt"
 	iot "github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
+	"time"
 )
 
 func main() {
 	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
 	device.Init()
+	device.SetSubDevicesAddHandler(func(device iot.SubDeviceInfo) {
+		for _, info := range device.Devices {
+			fmt.Println("handle device add")
+			fmt.Println(iot.Interface2JsonString(info))
+		}
+	})
 
-	TestAddSubDevices(device)
+	time.Sleep(time.Hour)
 }
 
 func TestUpdateSubDeviceState(device iot.Device) {

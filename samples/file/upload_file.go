@@ -9,7 +9,7 @@ func main() {
 	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
 	device.Init()
 
-	//device.UploadFile("D/software/mqttfx/chentong.txt")
-	device.DownloadFile("D/software/mqttfx/chentong.txt")
+	device.UploadFile("D/software/mqttfx/chentong.txt")
+	//device.DownloadFile("D/software/mqttfx/chentong.txt")
 }
 

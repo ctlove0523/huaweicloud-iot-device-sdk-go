@@ -44,11 +44,13 @@ const (
 
 	// 平台下发文件上传和下载URL
 	FileResponseTopicName string = "FileUploadResultTopic"
-	FileResponseTopic     string = "$oc/devices/{device_id}/sys/events/down"
 
 	FileActionUpload   string = "upload"
 	FileActionDownload string = "download"
 
 	// 设备或网关向平台发送请求
 	DeviceToPlatformTopic string = "$oc/devices/{device_id}/sys/events/up"
+
+	// 平台向设备下发事件topic
+	PlatformEventToDeviceTopic string = "$oc/devices/{device_id}/sys/events/down"
 )

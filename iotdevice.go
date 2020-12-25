@@ -2,6 +2,7 @@ package iot
 
 import (
 	"encoding/json"
+	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/golang/glog"
 	"github.com/satori/go.uuid"
@@ -13,6 +14,7 @@ type Gateway interface {
 	UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) bool
 	DeleteSubDevices(deviceIds []string) bool
 	AddSubDevices(deviceInfos []DeviceInfo) bool
+	SetSubDevicesAddHandler(handler SubDevicesAddHandler)
 }
 
 type Device interface {
@@ -41,10 +43,14 @@ type iotDevice struct {
 	propertiesSetHandlers          []DevicePropertiesSetHandler
 	propertyQueryHandler           DevicePropertyQueryHandler
 	propertiesQueryResponseHandler DevicePropertyQueryResponseHandler
+	subDevicesAddHandler           SubDevicesAddHandler
 	topics                         map[string]string
 	fileUrls                       map[string]string
 }
 
+func (device *iotDevice) SetSubDevicesAddHandler(handler SubDevicesAddHandler) {
+	device.subDevicesAddHandler = handler
+}
 func (device *iotDevice) AddSubDevices(deviceInfos []DeviceInfo) bool {
 	devices := struct {
 		Devices []DeviceInfo `json:"devices"`
@@ -325,24 +331,45 @@ func (device *iotDevice) createPropertiesSetMqttHandler() func(client mqtt.Clien
 	return propertiesSetHandler
 }
 
-func (device *iotDevice) createFileUrlResponseMqttHandler() func(client mqtt.Client, message mqtt.Message) {
-	fileResponseHandler := func(client mqtt.Client, message mqtt.Message) {
-		response := &FileResponse{}
-		if json.Unmarshal(message.Payload(), response) != nil {
-			glog.Warningf("unmarshal platform file url response failed,device id = %s，message = %s", device.Id, message)
+// 平台向设备下发的事件callback
+func (device *iotDevice) handlePlatformToDeviceData() func(client mqtt.Client, message mqtt.Message) {
+	fmt.Println("begin to handle data from platform to device")
+	handler := func(client mqtt.Client, message mqtt.Message) {
+		data := &Data{}
+		if json.Unmarshal(message.Payload(), data) != nil {
+			fmt.Println("unmarshal data failed")
 		}
 
-		fileName := response.Services[0].Paras.ObjectName
-		eventType := response.Services[0].EventType
-		if strings.Contains(eventType, FileActionUpload) {
-			device.fileUrls[fileName+FileActionUpload] = response.Services[0].Paras.Url
-		} else {
-			device.fileUrls[fileName+FileActionDownload] = response.Services[0].Paras.Url
+		for _, entry := range data.Services {
+			eventType := entry.EventType
+			switch eventType {
+			case "add_sub_device_notify":
+				// 子设备添加
+				subDeviceInfo := &SubDeviceInfo{}
+				if json.Unmarshal([]byte(Interface2JsonString(entry.Paras)), subDeviceInfo) != nil {
+					fmt.Println("begin to invoke sub device add")
+					continue
+				}
+				device.subDevicesAddHandler(*subDeviceInfo)
+			case "get_upload_url_response":
+				//获取文件上传URL
+				fileResponse := &FileResponseServiceEventParas{}
+				if json.Unmarshal([]byte(Interface2JsonString(entry.Paras)), fileResponse) != nil {
+					continue
+				}
+				device.fileUrls[fileResponse.ObjectName+FileActionUpload] = fileResponse.Url
+			case "get_download_url_response":
+				fileResponse := &FileResponseServiceEventParas{}
+				if json.Unmarshal([]byte(Interface2JsonString(entry.Paras)), fileResponse) != nil {
+					continue
+				}
+				device.fileUrls[fileResponse.ObjectName+FileActionDownload] = fileResponse.Url
+			}
 		}
 
 	}
 
-	return fileResponseHandler
+	return handler
 }
 
 func (device *iotDevice) createPropertiesQueryMqttHandler() func(client mqtt.Client, message mqtt.Message) {
@@ -492,7 +519,6 @@ func CreateIotDevice(id, password, servers string) Device {
 	device.topics[DeviceShadowQueryResponseTopicName] = FormatTopic(DeviceShadowQueryResponseTopic, id)
 	device.topics[GatewayBatchReportSubDeviceTopicName] = FormatTopic(GatewayBatchReportSubDeviceTopic, id)
 	device.topics[FileRequestTopicName] = FormatTopic(FileRequestTopic, id)
-	device.topics[FileResponseTopicName] = FormatTopic(FileResponseTopic, id)
 	return device
 }
 
@@ -553,9 +579,10 @@ func (device *iotDevice) subscribeDefaultTopics() {
 	}
 
 	// 订阅平台下发的文件上传和下载URL topic
-	if token := device.client.Subscribe(device.topics[FileResponseTopicName], 2, device.createFileUrlResponseMqttHandler());
+	topic := FormatTopic(PlatformEventToDeviceTopic, device.Id)
+	if token := device.client.Subscribe(topic, 2, device.handlePlatformToDeviceData());
 		token.Wait() && token.Error() != nil {
-		glog.Warningf("device %s subscribe query device shadow topic %s failed", device.Id, device.topics[FileResponseTopicName])
+		glog.Warningf("device %s subscribe query device shadow topic %s failed", device.Id, topic)
 		panic(0)
 	}
 
