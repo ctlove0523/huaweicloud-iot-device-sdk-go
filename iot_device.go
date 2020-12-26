@@ -36,6 +36,7 @@ type Gateway interface {
 type Device interface {
 	Gateway
 	Init() bool
+	DisConnect()
 	IsConnected() bool
 	SendMessage(message Message) bool
 	ReportProperties(properties ServiceProperty) bool
@@ -64,6 +65,9 @@ type iotDevice struct {
 	fileUrls                       map[string]string
 }
 
+func (device *iotDevice) DisConnect() () {
+	device.client.Disconnect(0)
+}
 func (device *iotDevice) SyncAllVersionSubDevices() {
 	dataEntry := DataEntry{
 		ServiceId: "$sub_device_manager",
