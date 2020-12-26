@@ -39,7 +39,7 @@ type Device interface {
 	DisConnect()
 	IsConnected() bool
 	SendMessage(message Message) bool
-	ReportProperties(properties ServiceProperty) bool
+	ReportProperties(properties ServiceProperties) bool
 	BatchReportSubDevicesProperties(service DevicesService)
 	QueryDeviceShadow(query DevicePropertyQueryRequest, handler DevicePropertyQueryResponseHandler)
 	AddMessageHandler(handler MessageHandler)
@@ -366,10 +366,14 @@ func (device *iotDevice) createCommandMqttHandler() func(client mqtt.Client, mes
 		var res string
 		if handleFlag {
 			glog.Infof("device %s handle command success", device.Id)
-			res = Interface2JsonString(SuccessIotCommandResponse())
+			res = Interface2JsonString(CommandResponse{
+				ResultCode: 0,
+			})
 		} else {
 			glog.Warningf("device %s handle command failed", device.Id)
-			res = Interface2JsonString(FailedIotCommandResponse())
+			res = Interface2JsonString(CommandResponse{
+				ResultCode: 1,
+			})
 		}
 		if token := device.client.Publish(FormatTopic(CommandResponseTopic, device.Id)+GetTopicRequestId(message.Topic()), 1, false, res);
 			token.Wait() && token.Error() != nil {
@@ -393,10 +397,18 @@ func (device *iotDevice) createPropertiesSetMqttHandler() func(client mqtt.Clien
 		}
 
 		var res string
+		response := struct {
+			ResultCode byte   `json:"result_code"`
+			ResultDesc string `json:"result_desc"`
+		}{}
 		if handleFlag {
-			res = Interface2JsonString(SuccessPropertiesSetResponse())
+			response.ResultCode = 0
+			response.ResultDesc = "Set property success."
+			res = Interface2JsonString(response)
 		} else {
-			res = Interface2JsonString(FailedPropertiesSetResponse())
+			response.ResultCode = 1
+			response.ResultDesc = "Set properties failed."
+			res = Interface2JsonString(response)
 		}
 		if token := device.client.Publish(FormatTopic(PropertiesSetResponseTopic, device.Id)+GetTopicRequestId(message.Topic()), 1, false, res);
 			token.Wait() && token.Error() != nil {
@@ -526,7 +538,7 @@ func (device *iotDevice) SendMessage(message Message) bool {
 	return true
 }
 
-func (device *iotDevice) ReportProperties(properties ServiceProperty) bool {
+func (device *iotDevice) ReportProperties(properties ServiceProperties) bool {
 	propertiesData := Interface2JsonString(properties)
 	if token := device.client.Publish(FormatTopic(PropertiesUpTopic, device.Id), 2, false, propertiesData);
 		token.Wait() && token.Error() != nil {

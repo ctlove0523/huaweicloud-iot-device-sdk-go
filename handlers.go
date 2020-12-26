@@ -1,44 +1,13 @@
 package iot
 
-// 设备命令
-type Command struct {
-	ObjectDeviceId string      `json:"object_device_id"`
-	ServiceId      string      `json:"service_id""`
-	CommandName    string      `json:"command_name"`
-	Paras          interface{} `json:"paras"`
-}
-
-type CommandResponse struct {
-	ResultCode   byte        `json:"result_code"`
-	ResponseName string      `json:"response_name"`
-	Paras        interface{} `json:"paras"`
-}
-
-func SuccessIotCommandResponse() CommandResponse {
-	return CommandResponse{
-		ResultCode: 0,
-	}
-}
-
-func FailedIotCommandResponse() CommandResponse {
-	return CommandResponse{
-		ResultCode: 1,
-	}
-}
 
 
-type Message struct {
-	ObjectDeviceId string      `json:"object_device_id"`
-	Name           string      `json:"name"`
-	Id             string      `json:"id"`
-	Content        interface{} `json:"content"`
-}
-
-// 设备属性上报
-type ServiceProperty struct {
+// 设备属性
+type ServiceProperties struct {
 	Services []ServicePropertyEntry `json:"services"`
 }
 
+// 单一属性
 type ServicePropertyEntry struct {
 	ServiceId  string      `json:"service_id"`
 	Properties interface{} `json:"properties"`
@@ -55,25 +24,6 @@ type DevicePropertyDownRequest struct {
 type DevicePropertyDownRequestEntry struct {
 	ServiceId  string      `json:"service_id"`
 	Properties interface{} `json:"properties"`
-}
-
-type DevicePropertyDownResponse struct {
-	ResultCode byte   `json:"result_code"`
-	ResultDesc string `json:"result_desc"`
-}
-
-func SuccessPropertiesSetResponse() DevicePropertyDownResponse {
-	return DevicePropertyDownResponse{
-		ResultCode: 0,
-		ResultDesc: "success set properties",
-	}
-}
-
-func FailedPropertiesSetResponse() DevicePropertyDownResponse {
-	return DevicePropertyDownResponse{
-		ResultCode: 1,
-		ResultDesc: "failed set properties",
-	}
 }
 
 // 平台设置设备属性==================================================

@@ -43,7 +43,7 @@ func main() {
 
 	var content []iot.ServicePropertyEntry
 	content = append(content, props)
-	services := iot.ServiceProperty{
+	services := iot.ServiceProperties{
 		Services: content,
 	}
 	device.ReportProperties(services)
