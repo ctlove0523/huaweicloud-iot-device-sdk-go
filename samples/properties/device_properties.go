@@ -36,8 +36,8 @@ func main() {
 		ServiceId: "value",
 		EventTime: iot.GetEventTimeStamp(),
 		Properties: DemoProperties{
-			Value:   "chen tong",
-			MsgType: "23",
+			Value:   "Test Code",
+			MsgType: "34",
 		},
 	}
 

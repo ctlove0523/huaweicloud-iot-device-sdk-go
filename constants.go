@@ -2,25 +2,27 @@ package iot
 
 
 const (
+	// 平台下发消息topic
 	MessageDownTopic     string = "$oc/devices/{device_id}/sys/messages/down"
-	//MessageDownTopicName string = "messageDownTopicName"
 
+	// 设备上报消息topic
 	MessageUpTopic     string = "$oc/devices/{device_id}/sys/messages/up"
-	MessageUpTopicName string = "messageUpTopicName"
 
 	// 平台下发命令topic
 	CommandDownTopic string = "$oc/devices/{device_id}/sys/commands/#"
 
-	CommandResponseTopicName string = "commandResponseTopicName"
+	// 设备响应平台命令
 	CommandResponseTopic     string = "$oc/devices/{device_id}/sys/commands/response/request_id="
 
-	PropertiesUpTopicName string = "propertiesUpTopicName"
+	// 设备上报属性
 	PropertiesUpTopic     string = "$oc/devices/{device_id}/sys/properties/report"
 
-	//平台设置设备属性相关Topic
-	PropertiesSetRequestTopicName  string = "propertiesSetRequestTopicName"
+	//平台设置属性topic
+	//PropertiesSetRequestTopicName  string = "propertiesSetRequestTopicName"
 	PropertiesSetRequestTopic      string = "$oc/devices/{device_id}/sys/properties/set/#"
-	PropertiesSetResponseTopicName string = "propertiesSetResponseTopicName"
+
+	// 设备响应平台属性设置topic
+	//PropertiesSetResponseTopicName string = "propertiesSetResponseTopicName"
 	PropertiesSetResponseTopic     string = "$oc/devices/{device_id}/sys/properties/set/response/request_id="
 
 	// 平台查询设备属性
