@@ -71,7 +71,6 @@ func (device *iotDevice) SyncAllVersionSubDevices() {
 		EventType: "sub_device_sync_request",
 		EventTime: GetEventTimeStamp(),
 		Paras: struct {
-
 		}{},
 	}
 
@@ -588,8 +587,6 @@ func CreateIotDevice(id, password, servers string) Device {
 
 	// 初始化设备相关的所有topic
 	device.topics = make(map[string]string)
-	device.topics[MessageDownTopicName] = FormatTopic(MessageDownTopic, id)
-	//device.topics[CommandDownTopicName] = FormatTopic(CommandDownTopic, id)
 	device.topics[CommandResponseTopicName] = FormatTopic(CommandResponseTopic, id)
 	device.topics[MessageUpTopicName] = FormatTopic(MessageUpTopic, id)
 	device.topics[PropertiesUpTopicName] = FormatTopic(PropertiesUpTopic, id)
@@ -626,7 +623,7 @@ func logFlush() {
 
 func (device *iotDevice) subscribeDefaultTopics() {
 	// 订阅平台命令下发topic
-	topic:=FormatTopic(CommandDownTopic,device.Id)
+	topic := FormatTopic(CommandDownTopic, device.Id)
 	if token := device.client.Subscribe(topic, 2, device.createCommandMqttHandler());
 		token.Wait() && token.Error() != nil {
 		glog.Warningf("device %s subscribe platform send command topic %s failed", device.Id, topic)
@@ -634,9 +631,10 @@ func (device *iotDevice) subscribeDefaultTopics() {
 	}
 
 	// 订阅平台消息下发的topic
-	if token := device.client.Subscribe(device.topics[MessageDownTopicName], 2, device.createMessageMqttHandler());
+	topic = FormatTopic(MessageDownTopic, device.Id)
+	if token := device.client.Subscribe(topic, 2, device.createMessageMqttHandler());
 		token.Wait() && token.Error() != nil {
-		glog.Warningf("device % subscribe platform send message topic %s failed.", device.Id, device.topics[MessageDownTopicName])
+		glog.Warningf("device % subscribe platform send message topic %s failed.", device.Id, topic)
 		panic(0)
 	}
 

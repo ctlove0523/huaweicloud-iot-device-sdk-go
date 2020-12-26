@@ -3,7 +3,7 @@ package iot
 
 const (
 	MessageDownTopic     string = "$oc/devices/{device_id}/sys/messages/down"
-	MessageDownTopicName string = "messageDownTopicName"
+	//MessageDownTopicName string = "messageDownTopicName"
 
 	MessageUpTopic     string = "$oc/devices/{device_id}/sys/messages/up"
 	MessageUpTopicName string = "messageUpTopicName"
