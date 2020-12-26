@@ -1,7 +1,5 @@
 package iot
 
-type CommandHandler func(Command) bool
-
 // 设备命令
 type Command struct {
 	ObjectDeviceId string      `json:"object_device_id"`
@@ -28,8 +26,6 @@ func FailedIotCommandResponse() CommandResponse {
 	}
 }
 
-// 设备消息
-type MessageHandler func(message Message) bool
 
 type Message struct {
 	ObjectDeviceId string      `json:"object_device_id"`
@@ -50,7 +46,6 @@ type ServicePropertyEntry struct {
 }
 
 // 平台设置设备属性==================================================
-type DevicePropertiesSetHandler func(message DevicePropertyDownRequest) bool
 
 type DevicePropertyDownRequest struct {
 	ObjectDeviceId string                           `json:"object_device_id"`
@@ -82,9 +77,6 @@ func FailedPropertiesSetResponse() DevicePropertyDownResponse {
 }
 
 // 平台设置设备属性==================================================
-
-// 平台查询设备属性
-type DevicePropertyQueryHandler func(query DevicePropertyQueryRequest) ServicePropertyEntry
 type DevicePropertyQueryRequest struct {
 	ObjectDeviceId string `json:"object_device_id"`
 	ServiceId      string `json:"service_id"`
