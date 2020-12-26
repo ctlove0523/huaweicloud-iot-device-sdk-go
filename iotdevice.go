@@ -589,7 +589,7 @@ func CreateIotDevice(id, password, servers string) Device {
 	// 初始化设备相关的所有topic
 	device.topics = make(map[string]string)
 	device.topics[MessageDownTopicName] = FormatTopic(MessageDownTopic, id)
-	device.topics[CommandDownTopicName] = FormatTopic(CommandDownTopic, id)
+	//device.topics[CommandDownTopicName] = FormatTopic(CommandDownTopic, id)
 	device.topics[CommandResponseTopicName] = FormatTopic(CommandResponseTopic, id)
 	device.topics[MessageUpTopicName] = FormatTopic(MessageUpTopic, id)
 	device.topics[PropertiesUpTopicName] = FormatTopic(PropertiesUpTopic, id)
@@ -626,9 +626,10 @@ func logFlush() {
 
 func (device *iotDevice) subscribeDefaultTopics() {
 	// 订阅平台命令下发topic
-	if token := device.client.Subscribe(device.topics[CommandDownTopicName], 2, device.createCommandMqttHandler());
+	topic:=FormatTopic(CommandDownTopic,device.Id)
+	if token := device.client.Subscribe(topic, 2, device.createCommandMqttHandler());
 		token.Wait() && token.Error() != nil {
-		glog.Warningf("device %s subscribe platform send command topic %s failed", device.Id, device.topics[CommandDownTopicName])
+		glog.Warningf("device %s subscribe platform send command topic %s failed", device.Id, topic)
 		panic(0)
 	}
 
@@ -661,7 +662,7 @@ func (device *iotDevice) subscribeDefaultTopics() {
 	}
 
 	// 订阅平台下发的文件上传和下载URL topic
-	topic := FormatTopic(PlatformEventToDeviceTopic, device.Id)
+	topic = FormatTopic(PlatformEventToDeviceTopic, device.Id)
 	if token := device.client.Subscribe(topic, 2, device.handlePlatformToDeviceData());
 		token.Wait() && token.Error() != nil {
 		glog.Warningf("device %s subscribe query device shadow topic %s failed", device.Id, topic)

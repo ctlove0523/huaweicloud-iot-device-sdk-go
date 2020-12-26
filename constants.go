@@ -1,5 +1,6 @@
 package iot
 
+
 const (
 	MessageDownTopic     string = "$oc/devices/{device_id}/sys/messages/down"
 	MessageDownTopicName string = "messageDownTopicName"
@@ -7,8 +8,8 @@ const (
 	MessageUpTopic     string = "$oc/devices/{device_id}/sys/messages/up"
 	MessageUpTopicName string = "messageUpTopicName"
 
-	CommandDownTopicName string = "commandDownTopicName"
-	CommandDownTopic     string = "$oc/devices/{device_id}/sys/commands/#"
+	// 平台下发命令topic
+	CommandDownTopic string = "$oc/devices/{device_id}/sys/commands/#"
 
 	CommandResponseTopicName string = "commandResponseTopicName"
 	CommandResponseTopic     string = "$oc/devices/{device_id}/sys/commands/response/request_id="
