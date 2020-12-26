@@ -18,35 +18,30 @@ const (
 	PropertiesUpTopic     string = "$oc/devices/{device_id}/sys/properties/report"
 
 	//平台设置属性topic
-	//PropertiesSetRequestTopicName  string = "propertiesSetRequestTopicName"
 	PropertiesSetRequestTopic      string = "$oc/devices/{device_id}/sys/properties/set/#"
 
 	// 设备响应平台属性设置topic
-	//PropertiesSetResponseTopicName string = "propertiesSetResponseTopicName"
 	PropertiesSetResponseTopic     string = "$oc/devices/{device_id}/sys/properties/set/response/request_id="
 
 	// 平台查询设备属性
-	PropertiesQueryRequestTopicName  string = "propertiesQueryRequestTopicName"
 	PropertiesQueryRequestTopic      string = "$oc/devices/{device_id}/sys/properties/get/#"
-	PropertiesQueryResponseTopicName string = "propertiesQueryResponseTopicName"
+
+	// 设备响应平台属性查询
 	PropertiesQueryResponseTopic     string = "$oc/devices/{device_id}/sys/properties/get/response/request_id="
 
 	// 设备侧获取平台的设备影子数据
-	DeviceShadowQueryRequestTopicName  string = "deviceShadowQueryRequestTopicName"
 	DeviceShadowQueryRequestTopic      string = "$oc/devices/{device_id}/sys/shadow/get/request_id="
-	DeviceShadowQueryResponseTopicName string = "deviceShadowQueryResponseTopicName"
+
+	// 设备侧响应获取平台设备影子
 	DeviceShadowQueryResponseTopic     string = "$oc/devices/{device_id}/sys/shadow/get/response/#"
 
 	// 网关批量上报子设备属性
-	GatewayBatchReportSubDeviceTopicName string = "gatewayBatchReportSubDeviceTopicName"
+	//GatewayBatchReportSubDeviceTopicName string = "gatewayBatchReportSubDeviceTopicName"
 	GatewayBatchReportSubDeviceTopic     string = "$oc/devices/{device_id}/sys/gateway/sub_devices/properties/report"
 
-	// 文件上传请求：获取上传和下载URL，上报结果
-	FileRequestTopicName string = "fileUploadRequestTopicName"
-	FileRequestTopic     string = "$oc/devices/{device_id}/sys/events/up"
 
 	// 平台下发文件上传和下载URL
-	FileResponseTopicName string = "FileUploadResultTopic"
+	//FileResponseTopicName string = "FileUploadResultTopic"
 
 	FileActionUpload   string = "upload"
 	FileActionDownload string = "download"

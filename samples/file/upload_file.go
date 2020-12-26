@@ -10,6 +10,6 @@ func main() {
 	device.Init()
 
 	device.UploadFile("D/software/mqttfx/chentong.txt")
-	//device.DownloadFile("D/software/mqttfx/chentong.txt")
+	device.DownloadFile("D/software/mqttfx/chentong.txt")
 }
 
