@@ -11,10 +11,26 @@ import (
 )
 
 type Gateway interface {
+	// 网关更新子设备状态
 	UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) bool
+
+	// 网关删除子设备
 	DeleteSubDevices(deviceIds []string) bool
+
+	// 网关添加子设备
 	AddSubDevices(deviceInfos []DeviceInfo) bool
+
+	// 设置平台添加子设备回调函数
 	SetSubDevicesAddHandler(handler SubDevicesAddHandler)
+
+	// 设置平台删除子设备回调函数
+	SetSubDevicesDeleteHandler(handler SubDevicesDeleteHandler)
+
+	// 网关同步子设备列表,默认实现不指定版本
+	SyncAllVersionSubDevices()
+
+	// 网关同步特定版本子设备列表
+	SyncSubDevices(version int)
 }
 
 type Device interface {
@@ -44,10 +60,68 @@ type iotDevice struct {
 	propertyQueryHandler           DevicePropertyQueryHandler
 	propertiesQueryResponseHandler DevicePropertyQueryResponseHandler
 	subDevicesAddHandler           SubDevicesAddHandler
+	subDevicesDeleteHandler        SubDevicesDeleteHandler
 	topics                         map[string]string
 	fileUrls                       map[string]string
 }
 
+func (device *iotDevice) SyncAllVersionSubDevices() {
+	dataEntry := DataEntry{
+		ServiceId: "$sub_device_manager",
+		EventType: "sub_device_sync_request",
+		EventTime: GetEventTimeStamp(),
+		Paras: struct {
+
+		}{},
+	}
+
+	var dataEntries []DataEntry
+	dataEntries = append(dataEntries, dataEntry)
+
+	data := Data{
+		Services: dataEntries,
+	}
+
+	topic := FormatTopic(DeviceToPlatformTopic, device.Id)
+	fmt.Printf("topic = %s\n", topic)
+	if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 1, false, Interface2JsonString(data));
+		token.Wait() && token.Error() != nil {
+		fmt.Println("send sync sub device request failed")
+	} else {
+		fmt.Printf("send syc sub device request success")
+	}
+}
+
+func (device *iotDevice) SyncSubDevices(version int) {
+	syncParas := struct {
+		Version int `json:"version"`
+	}{
+		Version: version,
+	}
+
+	dataEntry := DataEntry{
+		ServiceId: "$sub_device_manager",
+		EventType: "sub_device_sync_request",
+		EventTime: GetEventTimeStamp(),
+		Paras:     syncParas,
+	}
+
+	var dataEntries []DataEntry
+	dataEntries = append(dataEntries, dataEntry)
+
+	data := Data{
+		Services: dataEntries,
+	}
+
+	if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 1, false, Interface2JsonString(data));
+		token.Wait() && token.Error() != nil {
+		fmt.Println("send sync sub device reqeust failed")
+	}
+}
+
+func (device *iotDevice) SetSubDevicesDeleteHandler(handler SubDevicesDeleteHandler) {
+	device.subDevicesDeleteHandler = handler
+}
 func (device *iotDevice) SetSubDevicesAddHandler(handler SubDevicesAddHandler) {
 	device.subDevicesAddHandler = handler
 }
@@ -351,6 +425,14 @@ func (device *iotDevice) handlePlatformToDeviceData() func(client mqtt.Client, m
 					continue
 				}
 				device.subDevicesAddHandler(*subDeviceInfo)
+			case "delete_sub_device_notify":
+				subDeviceInfo := &SubDeviceInfo{}
+				if json.Unmarshal([]byte(Interface2JsonString(entry.Paras)), subDeviceInfo) != nil {
+					fmt.Println("begin to invoke sub device delete")
+					continue
+				}
+				device.subDevicesDeleteHandler(*subDeviceInfo)
+
 			case "get_upload_url_response":
 				//获取文件上传URL
 				fileResponse := &FileResponseServiceEventParas{}

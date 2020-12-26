@@ -9,12 +9,24 @@ import (
 func main() {
 	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
 	device.Init()
-	device.SetSubDevicesAddHandler(func(device iot.SubDeviceInfo) {
-		for _, info := range device.Devices {
+	device.SetSubDevicesAddHandler(func(devices iot.SubDeviceInfo) {
+		for _, info := range devices.Devices {
 			fmt.Println("handle device add")
 			fmt.Println(iot.Interface2JsonString(info))
 		}
 	})
+
+	device.SetSubDevicesDeleteHandler(func(devices iot.SubDeviceInfo) {
+		for _, info := range devices.Devices {
+			fmt.Println("handle device delete")
+			fmt.Println(iot.Interface2JsonString(info))
+		}
+	})
+
+	time.Sleep(2* time.Second)
+
+	device.SyncAllVersionSubDevices()
+
 
 	time.Sleep(time.Hour)
 }
