@@ -39,7 +39,7 @@ type Device interface {
 	DisConnect()
 	IsConnected() bool
 	SendMessage(message Message) bool
-	ReportProperties(properties ServiceProperties) bool
+	ReportProperties(properties DeviceProperties) bool
 	BatchReportSubDevicesProperties(service DevicesService)
 	QueryDeviceShadow(query DevicePropertyQueryRequest, handler DevicePropertyQueryResponseHandler)
 	AddMessageHandler(handler MessageHandler)
@@ -540,7 +540,7 @@ func (device *iotDevice) SendMessage(message Message) bool {
 	return true
 }
 
-func (device *iotDevice) ReportProperties(properties ServiceProperties) bool {
+func (device *iotDevice) ReportProperties(properties DeviceProperties) bool {
 	propertiesData := Interface2JsonString(properties)
 	if token := device.client.Publish(FormatTopic(PropertiesUpTopic, device.Id), 2, false, propertiesData);
 		token.Wait() && token.Error() != nil {

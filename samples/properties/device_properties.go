@@ -20,8 +20,8 @@ func main() {
 	})
 
 	// 注册平台查询设备属性callback，当平台查询设备属性时此callback被调用，仅支持设置一个callback
-	device.SetPropertyQueryHandler(func(query iot.DevicePropertyQueryRequest) iot.ServicePropertyEntry {
-		return iot.ServicePropertyEntry{
+	device.SetPropertyQueryHandler(func(query iot.DevicePropertyQueryRequest) iot.DevicePropertyEntry {
+		return iot.DevicePropertyEntry{
 			ServiceId: "value",
 			Properties: DemoProperties{
 				Value:   "QUERY RESPONSE",
@@ -32,7 +32,7 @@ func main() {
 	})
 
 	// 设备上报属性
-	props := iot.ServicePropertyEntry{
+	props := iot.DevicePropertyEntry{
 		ServiceId: "value",
 		EventTime: iot.GetEventTimeStamp(),
 		Properties: DemoProperties{
@@ -41,9 +41,9 @@ func main() {
 		},
 	}
 
-	var content []iot.ServicePropertyEntry
+	var content []iot.DevicePropertyEntry
 	content = append(content, props)
-	services := iot.ServiceProperties{
+	services := iot.DeviceProperties{
 		Services: content,
 	}
 	device.ReportProperties(services)
