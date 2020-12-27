@@ -134,18 +134,20 @@ func (device *iotDevice) AddSubDevices(deviceInfos []DeviceInfo) bool {
 		Devices: deviceInfos,
 	}
 
-	requestEventService := RequestEventService{
+	requestEventService := DataEntry{
 		ServiceId: "$sub_device_manager",
 		EventType: "add_sub_device_request",
 		EventTime: GetEventTimeStamp(),
 		Paras:     devices,
 	}
 
-	request := Request{
+	request := Data{
 		ObjectDeviceId: device.Id,
-		Services:       []RequestEventService{requestEventService},
+		Services:       []DataEntry{requestEventService},
 	}
 
+	fmt.Printf("topic = %s\n", FormatTopic(DeviceToPlatformTopic, device.Id))
+	fmt.Printf("request = %s\n", Interface2JsonString(request))
 	if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 1, false, Interface2JsonString(request));
 		token.Wait() && token.Error() != nil {
 		glog.Warningf("gateway %s add sub devices request send failed", device.Id)
@@ -165,16 +167,16 @@ func (device *iotDevice) DeleteSubDevices(deviceIds []string) bool {
 		Devices: deviceIds,
 	}
 
-	requestEventService := RequestEventService{
+	requestEventService := DataEntry{
 		ServiceId: "$sub_device_manager",
 		EventType: "delete_sub_device_request",
 		EventTime: GetEventTimeStamp(),
 		Paras:     subDevices,
 	}
 
-	request := Request{
+	request := Data{
 		ObjectDeviceId: device.Id,
-		Services:       []RequestEventService{requestEventService},
+		Services:       []DataEntry{requestEventService},
 	}
 
 	if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 1, false, Interface2JsonString(request));
@@ -190,16 +192,16 @@ func (device *iotDevice) DeleteSubDevices(deviceIds []string) bool {
 func (device *iotDevice) UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) bool {
 	glog.Infof("begin to update sub-devices status")
 
-	requestEventService := RequestEventService{
+	requestEventService := DataEntry{
 		ServiceId: "$sub_device_manager",
 		EventType: "sub_device_update_status",
 		EventTime: GetEventTimeStamp(),
 		Paras:     subDevicesStatus,
 	}
 
-	request := Request{
+	request := Data{
 		ObjectDeviceId: device.Id,
-		Services:       []RequestEventService{requestEventService},
+		Services:       []DataEntry{requestEventService},
 	}
 
 	if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 1, false, Interface2JsonString(request));
