@@ -46,6 +46,8 @@ type Device interface {
 	AddCommandHandler(handler CommandHandler)
 	AddPropertiesSetHandler(handler DevicePropertiesSetHandler)
 	SetPropertyQueryHandler(handler DevicePropertyQueryHandler)
+	SetSwFwVersionReporter(handler SwFwVersionReporter)
+	SetDeviceUpgradeHandler(handler DeviceUpgradeHandler)
 	UploadFile(filename string) bool
 	DownloadFile(filename string) bool
 }
@@ -62,6 +64,8 @@ type iotDevice struct {
 	propertiesQueryResponseHandler DevicePropertyQueryResponseHandler
 	subDevicesAddHandler           SubDevicesAddHandler
 	subDevicesDeleteHandler        SubDevicesDeleteHandler
+	swFwVersionReporter            SwFwVersionReporter
+	deviceUpgradeHandler           DeviceUpgradeHandler
 	fileUrls                       map[string]string
 }
 
@@ -127,6 +131,15 @@ func (device *iotDevice) SetSubDevicesDeleteHandler(handler SubDevicesDeleteHand
 func (device *iotDevice) SetSubDevicesAddHandler(handler SubDevicesAddHandler) {
 	device.subDevicesAddHandler = handler
 }
+
+func (device *iotDevice) SetSwFwVersionReporter(handler SwFwVersionReporter) {
+	device.swFwVersionReporter = handler
+}
+
+func (device *iotDevice) SetDeviceUpgradeHandler(handler DeviceUpgradeHandler) {
+	device.deviceUpgradeHandler = handler
+}
+
 func (device *iotDevice) AddSubDevices(deviceInfos []DeviceInfo) bool {
 	devices := struct {
 		Devices []DeviceInfo `json:"devices"`
@@ -462,12 +475,70 @@ func (device *iotDevice) handlePlatformToDeviceData() func(client mqtt.Client, m
 					continue
 				}
 				device.fileUrls[fileResponse.ObjectName+FileActionDownload] = fileResponse.Url
+			case "version_query":
+				// 查询软固件版本
+				device.reportVersion()
+
+			case "firmware_upgrade":
+				upgradeInfo := &UpgradeInfo{}
+				if json.Unmarshal([]byte(Interface2JsonString(entry.Paras)), upgradeInfo) != nil {
+					continue
+				}
+				device.upgradeDevice(1, upgradeInfo)
+
+			case "software_upgrade":
+				upgradeInfo := &UpgradeInfo{}
+				if json.Unmarshal([]byte(Interface2JsonString(entry.Paras)), upgradeInfo) != nil {
+					continue
+				}
+				device.upgradeDevice(0, upgradeInfo)
 			}
 		}
 
 	}
 
 	return handler
+}
+
+func (device *iotDevice) upgradeDevice(upgradeType byte, upgradeInfo *UpgradeInfo) {
+	progress := device.deviceUpgradeHandler(upgradeType, *upgradeInfo)
+	dataEntry := DataEntry{
+		ServiceId: "$ota",
+		EventType: "upgrade_progress_report",
+		EventTime: GetEventTimeStamp(),
+		Paras:     progress,
+	}
+	data := Data{
+		ObjectDeviceId: device.Id,
+		Services:       []DataEntry{dataEntry},
+	}
+
+	if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 1, false, Interface2JsonString(data));
+		token.Wait() && token.Error() != nil {
+		glog.Errorf("device %s upgrade failed,type %d", device.Id, upgradeType)
+	}
+}
+
+func (device *iotDevice) reportVersion() {
+	sw, fw := device.swFwVersionReporter()
+	dataEntry := DataEntry{
+		ServiceId: "$ota",
+		EventType: "version_report",
+		EventTime: GetEventTimeStamp(),
+		Paras: struct {
+			SwVersion string `json:"sw_version"`
+			FwVersion string `json:"fw_version"`
+		}{
+			SwVersion: sw,
+			FwVersion: fw,
+		},
+	}
+	data := Data{
+		ObjectDeviceId: device.Id,
+		Services:       []DataEntry{dataEntry},
+	}
+
+	device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 1, false, Interface2JsonString(data))
 }
 
 func (device *iotDevice) createPropertiesQueryMqttHandler() func(client mqtt.Client, message mqtt.Message) {

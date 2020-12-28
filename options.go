@@ -18,6 +18,43 @@ type DevicePropertiesSetHandler func(message DevicePropertyDownRequest) bool
 // 平台查询设备属性
 type DevicePropertyQueryHandler func(query DevicePropertyQueryRequest) DevicePropertyEntry
 
+// 设备执行软件/固件升级.upgradeType = 0 软件升级，upgradeType = 1 固件升级
+type DeviceUpgradeHandler func(upgradeType byte, info UpgradeInfo) UpgradeProgress
+
+// 设备上报软固件版本,第一个返回值为软件版本，第二个返回值为固件版本
+type SwFwVersionReporter func() (string, string)
+
+// 平台下发的升级信息
+type UpgradeInfo struct {
+	Version     string `json:"version"`      //软固件包版本号
+	Url         string `json:"url"`          //软固件包下载地址
+	FileSize    int    `json:"file_size"`    //软固件包文件大小
+	AccessToken string `json:"access_token"` //软固件包url下载地址的临时token
+	Expires     string `json:"expires"`      //access_token的超期时间
+	Sign        string `json:"sign"`         //软固件包MD5值
+}
+
+// 设备升级状态响应，用于设备向平台反馈进度，错误信息等
+// ResultCode： 设备的升级状态，结果码定义如下：
+// 0：处理成功
+// 1：设备使用中
+// 2：信号质量差
+// 3：已经是最新版本
+// 4：电量不足
+// 5：剩余空间不足
+// 6：下载超时
+// 7：升级包校验失败
+// 8：升级包类型不支持
+// 9：内存不足
+// 10：安装升级包失败
+// 255： 内部异常
+type UpgradeProgress struct {
+	ResultCode  int    `json:"result_code"`
+	Progress    int    `json:"progress"`    // 设备的升级进度，范围：0到100
+	Version     string `json:"version"`     // 设备当前版本号
+	Description string `json:"description"` // 升级状态描述信息，可以返回具体升级失败原因。
+}
+
 // 设备命令
 type Command struct {
 	ObjectDeviceId string      `json:"object_device_id"`
@@ -34,9 +71,9 @@ type CommandResponse struct {
 
 // 消息
 type Message struct {
-	ObjectDeviceId string      `json:"object_device_id"`
-	Name           string      `json:"name"`
-	Id             string      `json:"id"`
+	ObjectDeviceId string `json:"object_device_id"`
+	Name           string `json:"name"`
+	Id             string `json:"id"`
 	Content        string `json:"content"`
 }
 
