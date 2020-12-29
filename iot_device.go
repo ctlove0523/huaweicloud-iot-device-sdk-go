@@ -1,8 +1,8 @@
 package iot
 
 import (
+	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/golang/glog"
 	"github.com/satori/go.uuid"
@@ -88,13 +88,9 @@ func (device *iotDevice) SyncAllVersionSubDevices() {
 		Services: dataEntries,
 	}
 
-	topic := FormatTopic(DeviceToPlatformTopic, device.Id)
-	fmt.Printf("topic = %s\n", topic)
 	if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 1, false, Interface2JsonString(data));
 		token.Wait() && token.Error() != nil {
-		fmt.Println("send sync sub device request failed")
-	} else {
-		fmt.Printf("send syc sub device request success")
+			glog.Errorf("send sub device sync request failed")
 	}
 }
 
@@ -121,7 +117,7 @@ func (device *iotDevice) SyncSubDevices(version int) {
 
 	if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 1, false, Interface2JsonString(data));
 		token.Wait() && token.Error() != nil {
-		fmt.Println("send sync sub device reqeust failed")
+		glog.Errorf("send sync sub device request failed")
 	}
 }
 
@@ -159,8 +155,6 @@ func (device *iotDevice) AddSubDevices(deviceInfos []DeviceInfo) bool {
 		Services:       []DataEntry{requestEventService},
 	}
 
-	fmt.Printf("topic = %s\n", FormatTopic(DeviceToPlatformTopic, device.Id))
-	fmt.Printf("request = %s\n", Interface2JsonString(request))
 	if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 1, false, Interface2JsonString(request));
 		token.Wait() && token.Error() != nil {
 		glog.Warningf("gateway %s add sub devices request send failed", device.Id)
@@ -436,11 +430,10 @@ func (device *iotDevice) createPropertiesSetMqttHandler() func(client mqtt.Clien
 
 // 平台向设备下发的事件callback
 func (device *iotDevice) handlePlatformToDeviceData() func(client mqtt.Client, message mqtt.Message) {
-	fmt.Println("begin to handle data from platform to device")
 	handler := func(client mqtt.Client, message mqtt.Message) {
 		data := &Data{}
 		if json.Unmarshal(message.Payload(), data) != nil {
-			fmt.Println("unmarshal data failed")
+			return
 		}
 
 		for _, entry := range data.Services {
@@ -450,14 +443,12 @@ func (device *iotDevice) handlePlatformToDeviceData() func(client mqtt.Client, m
 				// 子设备添加
 				subDeviceInfo := &SubDeviceInfo{}
 				if json.Unmarshal([]byte(Interface2JsonString(entry.Paras)), subDeviceInfo) != nil {
-					fmt.Println("begin to invoke sub device add")
 					continue
 				}
 				device.subDevicesAddHandler(*subDeviceInfo)
 			case "delete_sub_device_notify":
 				subDeviceInfo := &SubDeviceInfo{}
 				if json.Unmarshal([]byte(Interface2JsonString(entry.Paras)), subDeviceInfo) != nil {
-					fmt.Println("begin to invoke sub device delete")
 					continue
 				}
 				device.subDevicesDeleteHandler(*subDeviceInfo)
@@ -577,6 +568,9 @@ func (device *iotDevice) Init() bool {
 	options.SetClientID(assembleClientId(device))
 	options.SetUsername(device.Id)
 	options.SetPassword(HmacSha256(device.Password, TimeStamp()))
+	options.SetTLSConfig(&tls.Config{
+		InsecureSkipVerify: true,
+	})
 
 	device.client = mqtt.NewClient(options)
 
