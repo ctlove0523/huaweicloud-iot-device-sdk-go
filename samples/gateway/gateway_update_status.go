@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
+	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
 	device.SetSubDevicesAddHandler(func(devices iot.SubDeviceInfo) {
 		for _, info := range devices.Devices {
 			fmt.Println("handle device add")

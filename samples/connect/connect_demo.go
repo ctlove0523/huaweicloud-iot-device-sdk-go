@@ -7,7 +7,7 @@ import (
 )
 
 const password = "123456789"
-const server = "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883"
+const server = "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883"
 const produceId = "5fdb75cccbfe2f02ce81d4bf"
 
 

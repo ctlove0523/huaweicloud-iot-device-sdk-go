@@ -562,31 +562,6 @@ func (device *iotDevice) createPropertiesQueryResponseMqttHandler() func(client 
 	return propertiesQueryResponseHandler
 }
 
-func (device *iotDevice) Init() bool {
-	options := mqtt.NewClientOptions()
-	options.AddBroker(device.Servers)
-	options.SetClientID(assembleClientId(device))
-	options.SetUsername(device.Id)
-	options.SetPassword(HmacSha256(device.Password, TimeStamp()))
-	options.SetTLSConfig(&tls.Config{
-		InsecureSkipVerify: true,
-	})
-
-	device.client = mqtt.NewClient(options)
-
-	if token := device.client.Connect(); token.Wait() && token.Error() != nil {
-		glog.Warningf("device %s init failed,error = %v", device.Id, token.Error())
-		return false
-	}
-
-	device.subscribeDefaultTopics()
-
-	go logFlush()
-
-	return true
-
-}
-
 func (device *iotDevice) IsConnected() bool {
 	if device.client != nil {
 		return device.client.IsConnected()
@@ -668,6 +643,31 @@ func CreateIotDevice(id, password, servers string) Device {
 	device.fileUrls = map[string]string{}
 
 	return device
+}
+
+func (device *iotDevice) Init() bool {
+	options := mqtt.NewClientOptions()
+	options.AddBroker(device.Servers)
+	options.SetClientID(assembleClientId(device))
+	options.SetUsername(device.Id)
+	options.SetPassword(HmacSha256(device.Password, TimeStamp()))
+	options.SetTLSConfig(&tls.Config{
+		InsecureSkipVerify: true,
+	})
+
+	device.client = mqtt.NewClient(options)
+
+	if token := device.client.Connect(); token.Wait() && token.Error() != nil {
+		glog.Warningf("device %s init failed,error = %v", device.Id, token.Error())
+		return false
+	}
+
+	device.subscribeDefaultTopics()
+
+	go logFlush()
+
+	return true
+
 }
 
 func assembleClientId(device *iotDevice) string {

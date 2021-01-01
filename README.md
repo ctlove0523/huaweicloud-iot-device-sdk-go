@@ -70,7 +70,7 @@ import (
 
 func main() {
 	// 创建一个设备并初始化
-	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
+	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
 	device.Init()
 	if device.IsConnected() {
 		fmt.Println("device connect huawei iot platform success")
@@ -94,7 +94,7 @@ func main() {
 
 ~~~go
 // 创建一个设备并初始化
-device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
+device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
 device.Init()
 if device.IsConnected() {
 	fmt.Println("device connect huawei iot platform success")
@@ -138,7 +138,7 @@ import (
 // 处理平台下发的同步命令
 func main() {
 	// 创建一个设备并初始化
-	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
+	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
 	device.Init()
 	if device.IsConnected() {
 		fmt.Println("device connect huawei iot platform success")
@@ -173,7 +173,7 @@ func main() {
 2、使用SDK创建一个Device对象，并初始化Device。
 
 ~~~go
-device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
+device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
 	device.Init()
 ~~~
 
@@ -219,7 +219,7 @@ import (
 
 func main() {
 	// 创建一个设备并初始化
-	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
+	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
 	device.Init()
 
 	// 注册平台下发消息的callback，当收到平台下发的消息时，调用此callback.
@@ -265,7 +265,7 @@ func main() {
 
 ~~~go
 // 创建设备并初始化
-device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
+device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
 device.Init()
 fmt.Printf("device connected: %v\n", device.IsConnected())
 ~~~
@@ -377,7 +377,7 @@ import (
 
 func main() {
 	// 创建设备并初始化
-	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
+	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
 	device.Init()
 	fmt.Printf("device connected: %v\n", device.IsConnected())
 
@@ -459,7 +459,7 @@ type DemoProperties struct {
 #### 文件上传
 
 ~~~go
-device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "xxx", "tcp://iot-mqtts.cn-north-4.myhuaweicloud.com:1883")
+device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
 device.Init()
 
 device.UploadFile("D/software/mqttfx/chentong.txt")
