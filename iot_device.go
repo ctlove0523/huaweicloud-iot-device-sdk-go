@@ -657,11 +657,15 @@ func (device *iotDevice) Init() bool {
 	if strings.Contains(device.Servers, "tls") || strings.Contains(device.Servers, "ssl") {
 		glog.Infof("server support tls connection")
 		if device.ServerCert != nil {
-			certPool:=x509.NewCertPool()
+			certPool := x509.NewCertPool()
 			certPool.AppendCertsFromPEM(device.ServerCert)
 			options.SetTLSConfig(&tls.Config{
-				RootCAs: certPool,
+				RootCAs:            certPool,
 				InsecureSkipVerify: false,
+			})
+		} else {
+			options.SetTLSConfig(&tls.Config{
+				InsecureSkipVerify: true,
 			})
 		}
 	} else {
