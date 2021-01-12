@@ -2,6 +2,7 @@ package iot
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/golang/glog"
@@ -56,6 +57,7 @@ type iotDevice struct {
 	Id                             string
 	Password                       string
 	Servers                        string
+	ServerCert                     []byte
 	client                         mqtt.Client
 	commandHandlers                []CommandHandler
 	messageHandlers                []MessageHandler
@@ -90,7 +92,7 @@ func (device *iotDevice) SyncAllVersionSubDevices() {
 
 	if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 1, false, Interface2JsonString(data));
 		token.Wait() && token.Error() != nil {
-			glog.Errorf("send sub device sync request failed")
+		glog.Errorf("send sub device sync request failed")
 	}
 }
 
@@ -646,14 +648,27 @@ func CreateIotDevice(id, password, servers string) Device {
 }
 
 func (device *iotDevice) Init() bool {
+
 	options := mqtt.NewClientOptions()
 	options.AddBroker(device.Servers)
 	options.SetClientID(assembleClientId(device))
 	options.SetUsername(device.Id)
 	options.SetPassword(HmacSha256(device.Password, TimeStamp()))
-	options.SetTLSConfig(&tls.Config{
-		InsecureSkipVerify: true,
-	})
+	if strings.Contains(device.Servers, "tls") || strings.Contains(device.Servers, "ssl") {
+		glog.Infof("server support tls connection")
+		if device.ServerCert != nil {
+			certPool:=x509.NewCertPool()
+			certPool.AppendCertsFromPEM(device.ServerCert)
+			options.SetTLSConfig(&tls.Config{
+				RootCAs: certPool,
+				InsecureSkipVerify: false,
+			})
+		}
+	} else {
+		options.SetTLSConfig(&tls.Config{
+			InsecureSkipVerify: true,
+		})
+	}
 
 	device.client = mqtt.NewClient(options)
 
