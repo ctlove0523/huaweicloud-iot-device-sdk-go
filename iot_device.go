@@ -636,6 +636,10 @@ func (device *iotDevice) SetPropertyQueryHandler(handler DevicePropertyQueryHand
 }
 
 func CreateIotDevice(id, password, servers string) Device {
+	return CreateIotDeviceWithQos(id, password, servers, 0)
+}
+
+func CreateIotDeviceWithQos(id, password, servers string, qos byte) Device {
 	device := &iotDevice{}
 	device.Id = id
 	device.Password = password
@@ -645,7 +649,7 @@ func CreateIotDevice(id, password, servers string) Device {
 
 	device.fileUrls = map[string]string{}
 
-	device.qos = 0
+	device.qos = qos
 
 	return device
 }
