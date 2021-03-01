@@ -387,10 +387,13 @@ func (device *iotDevice) createCommandMqttHandler() func(client mqtt.Client, mes
 				ResultCode: 1,
 			})
 		}
-		if token := device.client.Publish(FormatTopic(CommandResponseTopic, device.Id)+GetTopicRequestId(message.Topic()), device.qos, false, res);
-			token.Wait() && token.Error() != nil {
-			glog.Infof("device %s send command response failed", device.Id)
-		}
+		go func() {
+			if token := device.client.Publish(FormatTopic(CommandResponseTopic, device.Id)+GetTopicRequestId(message.Topic()), 1, false, res);
+				token.Wait() && token.Error() != nil {
+				glog.Infof("device %s send command response failed", device.Id)
+			}
+		}()
+
 	}
 
 	return commandHandler
@@ -661,7 +664,7 @@ func (device *iotDevice) Init() bool {
 	options.SetClientID(assembleClientId(device))
 	options.SetUsername(device.Id)
 	options.SetPassword(HmacSha256(device.Password, TimeStamp()))
-	options.SetKeepAlive(120 * time.Second)
+	options.SetKeepAlive(250 * time.Second)
 	options.SetAutoReconnect(true)
 	options.SetConnectRetry(true)
 	if strings.Contains(device.Servers, "tls") || strings.Contains(device.Servers, "ssl") {
