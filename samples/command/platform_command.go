@@ -22,6 +22,7 @@ func main() {
 	// 添加用于处理平台下发命令的callback
 	device.AddCommandHandler(func(command iot.Command) bool {
 		fmt.Println("I get command from platform")
+		time.Sleep(10 * time.Second)
 		return true
 	})
 	time.Sleep(10 * time.Minute)

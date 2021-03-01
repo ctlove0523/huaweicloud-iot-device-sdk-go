@@ -366,28 +366,28 @@ func (device *iotDevice) createMessageMqttHandler() func(client mqtt.Client, mes
 
 func (device *iotDevice) createCommandMqttHandler() func(client mqtt.Client, message mqtt.Message) {
 	commandHandler := func(client mqtt.Client, message mqtt.Message) {
-		command := &Command{}
-		if json.Unmarshal(message.Payload(), command) != nil {
-			glog.Warningf("unmarshal platform command failed,device id = %s，message = %s", device.Id, message)
-		}
-
-		handleFlag := true
-		for _, handler := range device.commandHandlers {
-			handleFlag = handleFlag && handler(*command)
-		}
-		var res string
-		if handleFlag {
-			glog.Infof("device %s handle command success", device.Id)
-			res = Interface2JsonString(CommandResponse{
-				ResultCode: 0,
-			})
-		} else {
-			glog.Warningf("device %s handle command failed", device.Id)
-			res = Interface2JsonString(CommandResponse{
-				ResultCode: 1,
-			})
-		}
 		go func() {
+			command := &Command{}
+			if json.Unmarshal(message.Payload(), command) != nil {
+				glog.Warningf("unmarshal platform command failed,device id = %s，message = %s", device.Id, message)
+			}
+
+			handleFlag := true
+			for _, handler := range device.commandHandlers {
+				handleFlag = handleFlag && handler(*command)
+			}
+			var res string
+			if handleFlag {
+				glog.Infof("device %s handle command success", device.Id)
+				res = Interface2JsonString(CommandResponse{
+					ResultCode: 0,
+				})
+			} else {
+				glog.Warningf("device %s handle command failed", device.Id)
+				res = Interface2JsonString(CommandResponse{
+					ResultCode: 1,
+				})
+			}
 			if token := device.client.Publish(FormatTopic(CommandResponseTopic, device.Id)+GetTopicRequestId(message.Topic()), 1, false, res);
 				token.Wait() && token.Error() != nil {
 				glog.Infof("device %s send command response failed", device.Id)
