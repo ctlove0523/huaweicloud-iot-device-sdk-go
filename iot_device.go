@@ -351,14 +351,16 @@ ENDFOR:
 
 func (device *iotDevice) createMessageMqttHandler() func(client mqtt.Client, message mqtt.Message) {
 	messageHandler := func(client mqtt.Client, message mqtt.Message) {
-		msg := &Message{}
-		if json.Unmarshal(message.Payload(), msg) != nil {
-			glog.Warningf("unmarshal device message failed,device id = %s,message = %s", device.Id, message)
-		}
+		go func() {
+			msg := &Message{}
+			if json.Unmarshal(message.Payload(), msg) != nil {
+				glog.Warningf("unmarshal device message failed,device id = %s,message = %s", device.Id, message)
+			}
 
-		for _, handler := range device.messageHandlers {
-			handler(*msg)
-		}
+			for _, handler := range device.messageHandlers {
+				handler(*msg)
+			}
+		}()
 	}
 
 	return messageHandler
@@ -401,34 +403,36 @@ func (device *iotDevice) createCommandMqttHandler() func(client mqtt.Client, mes
 
 func (device *iotDevice) createPropertiesSetMqttHandler() func(client mqtt.Client, message mqtt.Message) {
 	propertiesSetHandler := func(client mqtt.Client, message mqtt.Message) {
-		propertiesSetRequest := &DevicePropertyDownRequest{}
-		if json.Unmarshal(message.Payload(), propertiesSetRequest) != nil {
-			glog.Warningf("unmarshal platform properties set request failed,device id = %s，message = %s", device.Id, message)
-		}
+		go func() {
+			propertiesSetRequest := &DevicePropertyDownRequest{}
+			if json.Unmarshal(message.Payload(), propertiesSetRequest) != nil {
+				glog.Warningf("unmarshal platform properties set request failed,device id = %s，message = %s", device.Id, message)
+			}
 
-		handleFlag := true
-		for _, handler := range device.propertiesSetHandlers {
-			handleFlag = handleFlag && handler(*propertiesSetRequest)
-		}
+			handleFlag := true
+			for _, handler := range device.propertiesSetHandlers {
+				handleFlag = handleFlag && handler(*propertiesSetRequest)
+			}
 
-		var res string
-		response := struct {
-			ResultCode byte   `json:"result_code"`
-			ResultDesc string `json:"result_desc"`
-		}{}
-		if handleFlag {
-			response.ResultCode = 0
-			response.ResultDesc = "Set property success."
-			res = Interface2JsonString(response)
-		} else {
-			response.ResultCode = 1
-			response.ResultDesc = "Set properties failed."
-			res = Interface2JsonString(response)
-		}
-		if token := device.client.Publish(FormatTopic(PropertiesSetResponseTopic, device.Id)+GetTopicRequestId(message.Topic()), device.qos, false, res);
-			token.Wait() && token.Error() != nil {
-			glog.Warningf("unmarshal platform properties set request failed,device id = %s，message = %s", device.Id, message)
-		}
+			var res string
+			response := struct {
+				ResultCode byte   `json:"result_code"`
+				ResultDesc string `json:"result_desc"`
+			}{}
+			if handleFlag {
+				response.ResultCode = 0
+				response.ResultDesc = "Set property success."
+				res = Interface2JsonString(response)
+			} else {
+				response.ResultCode = 1
+				response.ResultDesc = "Set properties failed."
+				res = Interface2JsonString(response)
+			}
+			if token := device.client.Publish(FormatTopic(PropertiesSetResponseTopic, device.Id)+GetTopicRequestId(message.Topic()), device.qos, false, res);
+				token.Wait() && token.Error() != nil {
+				glog.Warningf("unmarshal platform properties set request failed,device id = %s，message = %s", device.Id, message)
+			}
+		}()
 	}
 
 	return propertiesSetHandler
@@ -540,17 +544,19 @@ func (device *iotDevice) reportVersion() {
 
 func (device *iotDevice) createPropertiesQueryMqttHandler() func(client mqtt.Client, message mqtt.Message) {
 	propertiesQueryHandler := func(client mqtt.Client, message mqtt.Message) {
-		propertiesQueryRequest := &DevicePropertyQueryRequest{}
-		if json.Unmarshal(message.Payload(), propertiesQueryRequest) != nil {
-			glog.Warningf("device %s unmarshal properties query request failed %s", device.Id, message)
-		}
+		go func() {
+			propertiesQueryRequest := &DevicePropertyQueryRequest{}
+			if json.Unmarshal(message.Payload(), propertiesQueryRequest) != nil {
+				glog.Warningf("device %s unmarshal properties query request failed %s", device.Id, message)
+			}
 
-		queryResult := device.propertyQueryHandler(*propertiesQueryRequest)
-		responseToPlatform := Interface2JsonString(queryResult)
-		if token := device.client.Publish(FormatTopic(PropertiesQueryResponseTopic, device.Id)+GetTopicRequestId(message.Topic()), device.qos, false, responseToPlatform);
-			token.Wait() && token.Error() != nil {
-			glog.Warningf("device %s send properties query response failed.", device.Id)
-		}
+			queryResult := device.propertyQueryHandler(*propertiesQueryRequest)
+			responseToPlatform := Interface2JsonString(queryResult)
+			if token := device.client.Publish(FormatTopic(PropertiesQueryResponseTopic, device.Id)+GetTopicRequestId(message.Topic()), device.qos, false, responseToPlatform);
+				token.Wait() && token.Error() != nil {
+				glog.Warningf("device %s send properties query response failed.", device.Id)
+			}
+		}()
 	}
 
 	return propertiesQueryHandler
