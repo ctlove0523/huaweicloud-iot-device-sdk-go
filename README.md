@@ -18,7 +18,7 @@ huaweicloud-iot-device-sdk-go提供设备接入华为云IoT物联网平台的Go�
 
 ## 版本说明
 
-当前稳定版本：0.0.1，[下载地址](https://github.com/ctlove0523/huaweicloud-iot-device-sdk-go/releases/tag/v0.0.1)
+当前稳定版本：0.0.2，[下载地址](https://github.com/ctlove0523/huaweicloud-iot-device-sdk-go/releases/tag/v0.0.1)
 
 开发中版本：0.0.2-alpha
 

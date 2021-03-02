@@ -220,7 +220,7 @@ func (device *iotDevice) UpdateSubDeviceState(subDevicesStatus SubDevicesStatus)
 		return false
 	}
 
-	glog.Info("gateway %s update sub devices status failed", device.Id)
+	glog.Info("gateway  update sub devices status failed", device.Id)
 	return true
 }
 

@@ -1,6 +1,7 @@
 package iot
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -50,7 +51,8 @@ func TestFormatTopic(t *testing.T) {
 // 仅适用于windows系统
 func TestSmartFileName(t *testing.T) {
 	fileName := "D/go/sdk/test.log"
-	smartFileName := "D:\\\\go\\\\sdk\\\\test.log"
+	smartFileName := "D:\\go\\sdk\\test.log"
+	fmt.Println(SmartFileName(fileName))
 
 	if smartFileName != SmartFileName(fileName) {
 		t.Errorf("in windows file system,smart file name must be %s", smartFileName)
