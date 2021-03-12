@@ -269,7 +269,7 @@ ENDFOR:
 	}
 
 	downloadFlag := CreateHttpClient().DownloadFile(filename, device.fileUrls[filename+FileActionDownload])
-	if downloadFlag {
+	if !downloadFlag {
 		glog.Errorf("down load file { %s } failed", filename)
 		return false
 	}
