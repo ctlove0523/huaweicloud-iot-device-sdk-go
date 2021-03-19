@@ -3,11 +3,12 @@ package main
 import (
 	"fmt"
 	iot "github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
+	"strconv"
 	"time"
 )
 
 func main() {
-	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-sdk", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
 	device.SetSubDevicesAddHandler(func(devices iot.SubDeviceInfo) {
 		for _, info := range devices.Devices {
 			fmt.Println("handle device add")
@@ -23,31 +24,22 @@ func main() {
 	})
 
 	device.Init()
-	TestDeleteSubDevices(device)
-	time.Sleep(2* time.Second)
+	TestUpdateSubDeviceState(device)
+	time.Sleep(200 * time.Second)
 
-	//device.SyncAllVersionSubDevices()
-
-
-	time.Sleep(time.Hour)
 }
 
 func TestUpdateSubDeviceState(device iot.Device) {
-	subDevice1 := iot.DeviceStatus{
-		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-1",
-		Status:   "OFFLINE",
-	}
-	subDevice2 := iot.DeviceStatus{
-		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-2",
-		Status:   "OFFLINE",
-	}
 
-	subDevice3 := iot.DeviceStatus{
-		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-3",
-		Status:   "ONLINE",
-	}
+	var devicesStatus []iot.DeviceStatus
+	for i := 0; i < 200; i++ {
+		subDevice := iot.DeviceStatus{
+			DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-" + strconv.Itoa(i),
+			Status:   "ONLINE",
+		}
 
-	devicesStatus := []iot.DeviceStatus{subDevice1, subDevice2, subDevice3}
+		devicesStatus = append(devicesStatus, subDevice)
+	}
 
 	ok := device.UpdateSubDeviceState(iot.SubDevicesStatus{
 		DeviceStatuses: devicesStatus,

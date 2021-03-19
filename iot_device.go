@@ -70,6 +70,7 @@ type iotDevice struct {
 	deviceUpgradeHandler           DeviceUpgradeHandler
 	fileUrls                       map[string]string
 	qos                            byte
+	batchSubDeviceSize             int
 }
 
 func (device *iotDevice) DisConnect() () {
@@ -202,22 +203,43 @@ func (device *iotDevice) DeleteSubDevices(deviceIds []string) bool {
 func (device *iotDevice) UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) bool {
 	glog.Infof("begin to update sub-devices status")
 
-	requestEventService := DataEntry{
-		ServiceId: "$sub_device_manager",
-		EventType: "sub_device_update_status",
-		EventTime: GetEventTimeStamp(),
-		Paras:     subDevicesStatus,
+	subDeviceCounts := len(subDevicesStatus.DeviceStatuses)
+
+	batchUpdateSubDeviceState := 0
+	if subDeviceCounts%device.batchSubDeviceSize == 0 {
+		batchUpdateSubDeviceState = subDeviceCounts / device.batchSubDeviceSize
+	} else {
+		batchUpdateSubDeviceState = subDeviceCounts/device.batchSubDeviceSize + 1
 	}
 
-	request := Data{
-		ObjectDeviceId: device.Id,
-		Services:       []DataEntry{requestEventService},
-	}
+	for i := 0; i < batchUpdateSubDeviceState; i++ {
+		begin := i * device.batchSubDeviceSize
+		end := (i + 1) * device.batchSubDeviceSize
+		if end > subDeviceCounts {
+			end = subDeviceCounts
+		}
 
-	if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), device.qos, false, Interface2JsonString(request));
-		token.Wait() && token.Error() != nil {
-		glog.Warningf("gateway %s update sub devices status failed", device.Id)
-		return false
+		sds := SubDevicesStatus{
+			DeviceStatuses: subDevicesStatus.DeviceStatuses[begin:end],
+		}
+
+		requestEventService := DataEntry{
+			ServiceId: "$sub_device_manager",
+			EventType: "sub_device_update_status",
+			EventTime: GetEventTimeStamp(),
+			Paras:     sds,
+		}
+
+		request := Data{
+			ObjectDeviceId: device.Id,
+			Services:       []DataEntry{requestEventService},
+		}
+
+		if token := device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), device.qos, false, Interface2JsonString(request));
+			token.Wait() && token.Error() != nil {
+			glog.Warningf("gateway %s update sub devices status failed", device.Id)
+			return false
+		}
 	}
 
 	glog.Info("gateway  update sub devices status failed", device.Id)
@@ -603,9 +625,31 @@ func (device *iotDevice) ReportProperties(properties DeviceProperties) bool {
 }
 
 func (device *iotDevice) BatchReportSubDevicesProperties(service DevicesService) {
-	if token := device.client.Publish(FormatTopic(GatewayBatchReportSubDeviceTopic, device.Id), device.qos, false, Interface2JsonString(service));
-		token.Wait() && token.Error() != nil {
-		glog.Warningf("device %s batch report sub device properties failed", device.Id)
+
+	subDeviceCounts := len(service.Devices)
+
+	batchReportSubDeviceProperties := 0
+	if subDeviceCounts%device.batchSubDeviceSize == 0 {
+		batchReportSubDeviceProperties = subDeviceCounts / device.batchSubDeviceSize
+	} else {
+		batchReportSubDeviceProperties = subDeviceCounts/device.batchSubDeviceSize + 1
+	}
+
+	for i := 0; i < batchReportSubDeviceProperties; i++ {
+		begin := i * device.batchSubDeviceSize
+		end := (i + 1) * device.batchSubDeviceSize
+		if end > subDeviceCounts {
+			end = subDeviceCounts
+		}
+
+		sds := DevicesService{
+			Devices: service.Devices[begin:end],
+		}
+
+		if token := device.client.Publish(FormatTopic(GatewayBatchReportSubDeviceTopic, device.Id), device.qos, false, Interface2JsonString(sds));
+			token.Wait() && token.Error() != nil {
+			glog.Warningf("device %s batch report sub device properties failed", device.Id)
+		}
 	}
 }
 
@@ -645,20 +689,39 @@ func (device *iotDevice) SetPropertyQueryHandler(handler DevicePropertyQueryHand
 }
 
 func CreateIotDevice(id, password, servers string) Device {
-	return CreateIotDeviceWithQos(id, password, servers, 0)
+	config := DeviceConfig{
+		Id:       id,
+		Password: password,
+		Servers:  servers,
+		Qos:      0,
+	}
+
+	return CreateIotDeviceWitConfig(config)
 }
 
 func CreateIotDeviceWithQos(id, password, servers string, qos byte) Device {
+	config := DeviceConfig{
+		Id:       id,
+		Password: password,
+		Servers:  servers,
+		Qos:      qos,
+	}
+
+	return CreateIotDeviceWitConfig(config)
+}
+
+func CreateIotDeviceWitConfig(config DeviceConfig) Device {
 	device := &iotDevice{}
-	device.Id = id
-	device.Password = password
-	device.Servers = servers
+	device.Id = config.Id
+	device.Password = config.Password
+	device.Servers = config.Servers
 	device.messageHandlers = []MessageHandler{}
 	device.commandHandlers = []CommandHandler{}
 
 	device.fileUrls = map[string]string{}
 
-	device.qos = qos
+	device.qos = config.Qos
+	device.batchSubDeviceSize = config.BatchSubDeviceSize
 
 	return device
 }
