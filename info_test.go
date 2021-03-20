@@ -17,7 +17,7 @@ func TestOsName(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	if SdkInfo()["sdk-version"] != "v0.0.2" {
+	if SdkInfo()["sdk-version"] != "v0.0.4" {
 		t.Errorf("sdk version must be v0.0.2")
 	}
 

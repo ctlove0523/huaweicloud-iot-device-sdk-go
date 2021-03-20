@@ -237,7 +237,7 @@ type FileResultResponse struct {
 type BaseServiceEvent struct {
 	ServiceId string `json:"service_id"`
 	EventType string `json:"event_type"`
-	EventTime string `json:"event_time"`
+	EventTime string `json:"event_time,omitempty"`
 }
 
 type FileRequestServiceEvent struct {
@@ -276,4 +276,22 @@ type FileResultServiceEventParas struct {
 	ResultCode        int    `json:"result_code"`
 	StatusCode        int    `json:"status_code"`
 	StatusDescription string `json:"status_description"`
+}
+
+// 上报设备信息请求
+type ReportDeviceInfoRequest struct {
+	ObjectDeviceId string                         `json:"object_device_id,omitempty"`
+	Services       []ReportDeviceInfoServiceEvent `json:"services,omitempty"`
+}
+
+type ReportDeviceInfoServiceEvent struct {
+	BaseServiceEvent
+	Paras ReportDeviceInfoEventParas `json:"paras,omitempty"`
+}
+
+// 设备信息上报请求参数
+type ReportDeviceInfoEventParas struct {
+	DeviceSdkVersion string `json:"device_sdk_version,omitempty"`
+	SwVersion        string `json:"sw_version,omitempty"`
+	FwVersion        string `json:"fw_version,omitempty"`
 }

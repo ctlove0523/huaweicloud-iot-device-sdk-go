@@ -51,6 +51,8 @@ type Device interface {
 	SetDeviceUpgradeHandler(handler DeviceUpgradeHandler)
 	UploadFile(filename string) bool
 	DownloadFile(filename string) bool
+
+	ReportDeviceInfo(swVersion, fwVersion string)
 }
 
 type iotDevice struct {
@@ -73,9 +75,32 @@ type iotDevice struct {
 	batchSubDeviceSize             int
 }
 
+func (device *iotDevice) ReportDeviceInfo(swVersion, fwVersion string) {
+	event := ReportDeviceInfoServiceEvent{
+		BaseServiceEvent{
+			ServiceId: "$device_info",
+			EventType: "device_info_report",
+			EventTime: GetEventTimeStamp(),
+		},
+		ReportDeviceInfoEventParas{
+			DeviceSdkVersion: SdkInfo()["sdk-version"],
+			SwVersion:        swVersion,
+			FwVersion:        fwVersion,
+		},
+	}
+
+	request := ReportDeviceInfoRequest{
+		ObjectDeviceId: device.Id,
+		Services:       []ReportDeviceInfoServiceEvent{event},
+	}
+
+	device.client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), device.qos, false, Interface2JsonString(request))
+}
+
 func (device *iotDevice) DisConnect() () {
 	device.client.Disconnect(0)
 }
+
 func (device *iotDevice) SyncAllVersionSubDevices() {
 	dataEntry := DataEntry{
 		ServiceId: "$sub_device_manager",
