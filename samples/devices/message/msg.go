@@ -14,7 +14,6 @@ func main() {
 
 	// 注册平台下发消息的callback，当收到平台下发的消息时，调用此callback.
 	// 支持注册多个callback，并且按照注册顺序调用
-
 	device.AddMessageHandler(func(message iot.Message) bool {
 		fmt.Println("first handler called" + iot.Interface2JsonString(message))
 		return true

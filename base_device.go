@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/golang/glog"
 	"strings"
@@ -89,13 +88,11 @@ func (device *baseIotDevice) Init() bool {
 	}
 
 	device.Client = mqtt.NewClient(options)
-	fmt.Println("hello1")
 	if token := device.Client.Connect(); token.Wait() && token.Error() != nil {
 		glog.Warningf("device %s init failed,error = %v", device.Id, token.Error())
 		return false
 	}
 
-	fmt.Println("hello")
 	device.subscribeDefaultTopics()
 
 	go logFlush()
@@ -277,7 +274,6 @@ func (device *baseIotDevice) createPropertiesQueryResponseMqttHandler() func(cli
 }
 
 func (device *baseIotDevice) subscribeDefaultTopics() {
-	fmt.Println("begin to subscribe topics")
 	// 订阅平台命令下发topic
 	topic := FormatTopic(CommandDownTopic, device.Id)
 	if token := device.Client.Subscribe(topic, device.qos, device.createCommandMqttHandler());

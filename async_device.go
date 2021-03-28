@@ -8,13 +8,13 @@ import (
 
 type AsyncDevice interface {
 	BaseDevice
+	Gateway
 	SendMessage(message Message) BooleanAsyncResult
 	ReportProperties(properties DeviceProperties) BooleanAsyncResult
 	BatchReportSubDevicesProperties(service DevicesService) BooleanAsyncResult
 	QueryDeviceShadow(query DevicePropertyQueryRequest, handler DevicePropertyQueryResponseHandler) BooleanAsyncResult
 	UploadFile(filename string) BooleanAsyncResult
 	DownloadFile(filename string) BooleanAsyncResult
-
 	ReportDeviceInfo(swVersion, fwVersion string) BooleanAsyncResult
 }
 
@@ -420,6 +420,245 @@ func (device *asyncDevice) ReportDeviceInfo(swVersion, fwVersion string) Boolean
 			result.SetResult(false)
 		}
 
+	}()
+
+	return result
+}
+
+func (device *asyncDevice) SetSubDevicesAddHandler(handler SubDevicesAddHandler) {
+	device.base.subDevicesAddHandler = handler
+}
+
+func (device *asyncDevice) SetSubDevicesDeleteHandler(handler SubDevicesDeleteHandler) {
+	device.base.subDevicesDeleteHandler = handler
+}
+
+func (device *asyncDevice) UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) BooleanAsyncResult {
+	glog.Infof("begin to update sub-devices status")
+
+	result := BooleanAsyncResult{
+		baseAsyncResult: baseAsyncResult{
+			complete: make(chan struct{}),
+		},
+	}
+
+	go func() {
+		subDeviceCounts := len(subDevicesStatus.DeviceStatuses)
+
+		batchUpdateSubDeviceState := 0
+		if subDeviceCounts%device.base.batchSubDeviceSize == 0 {
+			batchUpdateSubDeviceState = subDeviceCounts / device.base.batchSubDeviceSize
+		} else {
+			batchUpdateSubDeviceState = subDeviceCounts/device.base.batchSubDeviceSize + 1
+		}
+
+		for i := 0; i < batchUpdateSubDeviceState; i++ {
+			begin := i * device.base.batchSubDeviceSize
+			end := (i + 1) * device.base.batchSubDeviceSize
+			if end > subDeviceCounts {
+				end = subDeviceCounts
+			}
+
+			sds := SubDevicesStatus{
+				DeviceStatuses: subDevicesStatus.DeviceStatuses[begin:end],
+			}
+
+			requestEventService := DataEntry{
+				ServiceId: "$sub_device_manager",
+				EventType: "sub_device_update_status",
+				EventTime: GetEventTimeStamp(),
+				Paras:     sds,
+			}
+
+			request := Data{
+				ObjectDeviceId: device.base.Id,
+				Services:       []DataEntry{requestEventService},
+			}
+
+			if token := device.base.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request));
+				token.Wait() && token.Error() != nil {
+				glog.Warningf("gateway %s update sub devices status failed", device.base.Id)
+				result.setError(token.Error())
+				result.SetResult(false)
+				result.complete <- struct{}{}
+				return
+			}
+		}
+		result.SetResult(true)
+		result.complete <- struct{}{}
+		glog.Info("gateway  update sub devices status failed", device.base.Id)
+	}()
+
+	return result
+}
+
+func (device *asyncDevice) DeleteSubDevices(deviceIds []string) BooleanAsyncResult {
+	glog.Infof("begin to delete sub-devices %s", deviceIds)
+
+	result := BooleanAsyncResult{
+		baseAsyncResult: baseAsyncResult{
+			complete: make(chan struct{}),
+		},
+	}
+
+	go func() {
+		subDevices := struct {
+			Devices []string `json:"devices"`
+		}{
+			Devices: deviceIds,
+		}
+
+		requestEventService := DataEntry{
+			ServiceId: "$sub_device_manager",
+			EventType: "delete_sub_device_request",
+			EventTime: GetEventTimeStamp(),
+			Paras:     subDevices,
+		}
+
+		request := Data{
+			ObjectDeviceId: device.base.Id,
+			Services:       []DataEntry{requestEventService},
+		}
+
+		if token := device.base.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request));
+			token.Wait() && token.Error() != nil {
+			glog.Warningf("gateway %s delete sub devices request send failed", device.base.Id)
+			result.setError(token.Error())
+			result.SetResult(false)
+			result.complete <- struct{}{}
+		} else {
+			result.setError(nil)
+			result.SetResult(true)
+			result.complete <- struct{}{}
+		}
+
+		glog.Warningf("gateway %s delete sub devices request send success", device.base.Id)
+	}()
+
+	return result
+}
+
+func (device *asyncDevice) AddSubDevices(deviceInfos []DeviceInfo) BooleanAsyncResult {
+	result := BooleanAsyncResult{
+		baseAsyncResult: baseAsyncResult{
+			complete: make(chan struct{}),
+		},
+	}
+
+	go func() {
+		devices := struct {
+			Devices []DeviceInfo `json:"devices"`
+		}{
+			Devices: deviceInfos,
+		}
+
+		requestEventService := DataEntry{
+			ServiceId: "$sub_device_manager",
+			EventType: "add_sub_device_request",
+			EventTime: GetEventTimeStamp(),
+			Paras:     devices,
+		}
+
+		request := Data{
+			ObjectDeviceId: device.base.Id,
+			Services:       []DataEntry{requestEventService},
+		}
+
+		if token := device.base.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request));
+			token.Wait() && token.Error() != nil {
+			glog.Warningf("gateway %s add sub devices request send failed", device.base.Id)
+			result.setError(token.Error())
+			result.SetResult(false)
+			result.complete <- struct{}{}
+		} else {
+			result.setError(nil)
+			result.SetResult(true)
+			result.complete <- struct{}{}
+		}
+
+		glog.Warningf("gateway %s add sub devices request send success", device.base.Id)
+	}()
+
+	return result
+}
+
+func (device *asyncDevice) SyncAllVersionSubDevices() BooleanAsyncResult {
+	result := BooleanAsyncResult{
+		baseAsyncResult: baseAsyncResult{
+			complete: make(chan struct{}),
+		},
+	}
+
+	go func() {
+		dataEntry := DataEntry{
+			ServiceId: "$sub_device_manager",
+			EventType: "sub_device_sync_request",
+			EventTime: GetEventTimeStamp(),
+			Paras: struct {
+			}{},
+		}
+
+		var dataEntries []DataEntry
+		dataEntries = append(dataEntries, dataEntry)
+
+		data := Data{
+			Services: dataEntries,
+		}
+
+		if token := device.base.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(data));
+			token.Wait() && token.Error() != nil {
+			result.setError(token.Error())
+			result.SetResult(false)
+			result.complete <- struct{}{}
+		} else {
+			result.setError(nil)
+			result.SetResult(true)
+			result.complete <- struct{}{}
+		}
+	}()
+
+	return result
+}
+
+func (device *asyncDevice) SyncSubDevices(version int) BooleanAsyncResult {
+	result := BooleanAsyncResult{
+		baseAsyncResult: baseAsyncResult{
+			complete: make(chan struct{}),
+		},
+	}
+
+	go func() {
+		syncParas := struct {
+			Version int `json:"version"`
+		}{
+			Version: version,
+		}
+
+		dataEntry := DataEntry{
+			ServiceId: "$sub_device_manager",
+			EventType: "sub_device_sync_request",
+			EventTime: GetEventTimeStamp(),
+			Paras:     syncParas,
+		}
+
+		var dataEntries []DataEntry
+		dataEntries = append(dataEntries, dataEntry)
+
+		data := Data{
+			Services: dataEntries,
+		}
+
+		if token := device.base.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(data));
+			token.Wait() && token.Error() != nil {
+			glog.Errorf("send sync sub device request failed")
+			result.setError(token.Error())
+			result.SetResult(false)
+			result.complete <- struct{}{}
+		} else {
+			result.setError(nil)
+			result.SetResult(true)
+			result.complete <- struct{}{}
+		}
 	}()
 
 	return result

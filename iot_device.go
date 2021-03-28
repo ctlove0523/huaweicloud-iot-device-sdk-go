@@ -6,44 +6,21 @@ import (
 	"time"
 )
 
-type Gateway interface {
-	// 网关更新子设备状态
-	UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) bool
-
-	// 网关删除子设备
-	DeleteSubDevices(deviceIds []string) bool
-
-	// 网关添加子设备
-	AddSubDevices(deviceInfos []DeviceInfo) bool
-
-	// 设置平台添加子设备回调函数
-	SetSubDevicesAddHandler(handler SubDevicesAddHandler)
-
-	// 设置平台删除子设备回调函数
-	SetSubDevicesDeleteHandler(handler SubDevicesDeleteHandler)
-
-	// 网关同步子设备列表,默认实现不指定版本
-	SyncAllVersionSubDevices()
-
-	// 网关同步特定版本子设备列表
-	SyncSubDevices(version int)
-}
-
 type Device interface {
-	Gateway
 	BaseDevice
+	Gateway
 	SendMessage(message Message) bool
 	ReportProperties(properties DeviceProperties) bool
 	BatchReportSubDevicesProperties(service DevicesService)
 	QueryDeviceShadow(query DevicePropertyQueryRequest, handler DevicePropertyQueryResponseHandler)
 	UploadFile(filename string) bool
 	DownloadFile(filename string) bool
-
 	ReportDeviceInfo(swVersion, fwVersion string)
 }
 
 type iotDevice struct {
-	base baseIotDevice
+	base    baseIotDevice
+	gateway baseGateway
 }
 
 func (device *iotDevice) Init() bool {
@@ -83,7 +60,7 @@ func (device *iotDevice) SendMessage(message Message) bool {
 	messageData := Interface2JsonString(message)
 	if token := device.base.Client.Publish(FormatTopic(MessageUpTopic, device.base.Id), device.base.qos, false, messageData);
 		token.Wait() && token.Error() != nil {
-		glog.Warningf("device %s send messagefailed", device.base.Id)
+		glog.Warningf("device %s send message failed", device.base.Id)
 		return false
 	}
 	return true
@@ -169,12 +146,12 @@ func (device *iotDevice) UploadFile(filename string) bool {
 			_, ok := device.base.fileUrls[filename+FileActionUpload]
 			if ok {
 				glog.Infof("platform send file upload url success")
-				goto ENDFOR
+				goto BreakPoint
 			}
 
 		}
 	}
-ENDFOR:
+BreakPoint:
 
 	if len(device.base.fileUrls[filename+FileActionUpload]) == 0 {
 		glog.Errorf("get file upload url failed")
@@ -232,12 +209,12 @@ func (device *iotDevice) DownloadFile(filename string) bool {
 			_, ok := device.base.fileUrls[filename+FileActionDownload]
 			if ok {
 				glog.Infof("platform send file upload url success")
-				goto ENDFOR
+				goto BreakPoint
 			}
 
 		}
 	}
-ENDFOR:
+BreakPoint:
 
 	if len(device.base.fileUrls[filename+FileActionDownload]) == 0 {
 		glog.Errorf("get file download url failed")
@@ -281,6 +258,14 @@ func (device *iotDevice) ReportDeviceInfo(swVersion, fwVersion string) {
 	}
 
 	device.base.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request))
+}
+
+func (device *iotDevice) SetSubDevicesAddHandler(handler SubDevicesAddHandler) {
+	device.base.subDevicesAddHandler = handler
+}
+
+func (device *iotDevice) SetSubDevicesDeleteHandler(handler SubDevicesDeleteHandler) {
+	device.base.subDevicesDeleteHandler = handler
 }
 
 func (device *iotDevice) UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) bool {
@@ -389,13 +374,6 @@ func (device *iotDevice) AddSubDevices(deviceInfos []DeviceInfo) bool {
 	return true
 }
 
-func (device *iotDevice) SetSubDevicesAddHandler(handler SubDevicesAddHandler) {
-	device.base.subDevicesAddHandler = handler
-}
-func (device *iotDevice) SetSubDevicesDeleteHandler(handler SubDevicesDeleteHandler) {
-	device.base.subDevicesDeleteHandler = handler
-}
-
 func (device *iotDevice) SyncAllVersionSubDevices() {
 	dataEntry := DataEntry{
 		ServiceId: "$sub_device_manager",
@@ -478,10 +456,9 @@ func CreateIotDeviceWitConfig(config DeviceConfig) Device {
 	device.fileUrls = map[string]string{}
 
 	device.qos = config.Qos
-	device.batchSubDeviceSize = config.BatchSubDeviceSize
 
 	result := &iotDevice{
-		base: device,
+		base:    device,
 	}
 	return result
 }
