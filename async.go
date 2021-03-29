@@ -71,7 +71,6 @@ func (b *baseAsyncResult) setError(e error) {
 
 type BooleanAsyncResult struct {
 	baseAsyncResult
-
 	result bool
 }
 
@@ -82,11 +81,28 @@ func (bar *BooleanAsyncResult) Result() bool {
 	return bar.result
 }
 
-func (bar *BooleanAsyncResult) SetResult(result bool) {
+func (bar *BooleanAsyncResult) completeSuccess() {
 	bar.m.RLock()
 	defer bar.m.RUnlock()
+	bar.result = true
+	bar.err = nil
+	bar.complete <- struct{}{}
+}
 
+func (bar *BooleanAsyncResult) completeError(err error) {
+	bar.m.RLock()
+	defer bar.m.RUnlock()
+	bar.result = false
+	bar.err = err
 	bar.complete <- struct{}{}
-	bar.result = result
-	bar.complete <- struct{}{}
+}
+
+func NewBooleanAsyncResult() *BooleanAsyncResult{
+	asyncResult:=&BooleanAsyncResult{
+		baseAsyncResult:baseAsyncResult{
+			complete: make(chan struct{}),
+		},
+	}
+
+	return asyncResult
 }

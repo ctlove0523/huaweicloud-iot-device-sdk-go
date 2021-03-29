@@ -10,6 +10,14 @@ import (
 	"time"
 )
 
+type DeviceConfig struct {
+	Id       string
+	Password string
+	Servers  string
+	Qos      byte
+	BatchSubDeviceSize int
+}
+
 type BaseDevice interface {
 	Init() bool
 	DisConnect()
