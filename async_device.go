@@ -99,10 +99,14 @@ func (device *asyncDevice) SetDeviceUpgradeHandler(handler DeviceUpgradeHandler)
 func (device *asyncDevice) SendMessage(message Message) AsyncResult {
 	asyncResult := NewBooleanAsyncResult()
 	go func() {
+		glog.Info("begin async send message")
+
 		messageData := Interface2JsonString(message)
-		token := device.base.Client.Publish(FormatTopic(MessageUpTopic, device.base.Id), device.base.qos, false, messageData)
-		token.Wait()
-		if token.Error() != nil {
+		topic := FormatTopic(MessageUpTopic, device.base.Id)
+		glog.Infof("async send message topic is %s",topic)
+		token := device.base.Client.Publish(topic, device.base.qos, false, messageData)
+		if token.Wait() && token.Error() != nil {
+			glog.Warning("async send message failed")
 			asyncResult.completeError(token.Error())
 		} else {
 			asyncResult.completeSuccess()
@@ -113,13 +117,13 @@ func (device *asyncDevice) SendMessage(message Message) AsyncResult {
 }
 
 func (device *asyncDevice) ReportProperties(properties DeviceProperties) AsyncResult {
-	propertiesData := Interface2JsonString(properties)
 	asyncResult := NewBooleanAsyncResult()
-
 	go func() {
+		glog.Info("begin to report properties")
+		propertiesData := Interface2JsonString(properties)
 		if token := device.base.Client.Publish(FormatTopic(PropertiesUpTopic, device.base.Id), device.base.qos, false, propertiesData);
 			token.Wait() && token.Error() != nil {
-			glog.Warningf("device %s report properties failed", device.base.Id)
+			glog.Warningf("device %s async report properties failed", device.base.Id)
 			asyncResult.completeError(token.Error())
 		} else {
 			asyncResult.completeSuccess()
@@ -133,8 +137,8 @@ func (device *asyncDevice) BatchReportSubDevicesProperties(service DevicesServic
 	asyncResult := NewBooleanAsyncResult()
 
 	go func() {
+		glog.Info("begin async batch report sub devices properties")
 		subDeviceCounts := len(service.Devices)
-
 		batchReportSubDeviceProperties := 0
 		if subDeviceCounts%device.base.batchSubDeviceSize == 0 {
 			batchReportSubDeviceProperties = subDeviceCounts / device.base.batchSubDeviceSize
