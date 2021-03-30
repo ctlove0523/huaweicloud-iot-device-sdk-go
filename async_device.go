@@ -8,8 +8,8 @@ import (
 
 type AsyncDevice interface {
 	BaseDevice
-	Gateway
-	SendMessage(message Message) BooleanAsyncResult
+	AsyncGateway
+	SendMessage(message Message) AsyncResult
 	ReportProperties(properties DeviceProperties) AsyncResult
 	BatchReportSubDevicesProperties(service DevicesService) AsyncResult
 	QueryDeviceShadow(query DevicePropertyQueryRequest, handler DevicePropertyQueryResponseHandler) AsyncResult

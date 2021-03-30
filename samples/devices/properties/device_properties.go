@@ -3,12 +3,13 @@ package main
 import (
 	"fmt"
 	iot "github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
+	"github.com/ctlove0523/huaweicloud-iot-device-sdk-go/samples"
 	"time"
 )
 
 func main() {
 	// 创建设备并初始化
-	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+	device := samples.CreateDevice()
 	device.Init()
 	fmt.Printf("device connected: %v\n", device.IsConnected())
 
@@ -57,16 +58,16 @@ func main() {
 
 	// 批量上报子设备属性
 	subDevice1 := iot.DeviceService{
-		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-1",
+		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-1",
 		Services: content,
 	}
 	subDevice2 := iot.DeviceService{
-		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-2",
+		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-2",
 		Services: content,
 	}
 
 	subDevice3 := iot.DeviceService{
-		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-3",
+		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-3",
 		Services: content,
 	}
 

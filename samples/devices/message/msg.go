@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 	iot "github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
+	"github.com/ctlove0523/huaweicloud-iot-device-sdk-go/samples"
 	uuid "github.com/satori/go.uuid"
-	"time"
 )
 
 func main() {
 	// 创建一个设备并初始化
-	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_liqian", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+	device := samples.CreateDevice()
 	device.Init()
 
 	// 注册平台下发消息的callback，当收到平台下发的消息时，调用此callback.
@@ -31,7 +31,9 @@ func main() {
 		Id:             uuid.NewV4().String(),
 		Content:        "Hello Huawei IoT Platform",
 	}
-	device.SendMessage(message)
-	time.Sleep(2 * time.Minute)
+
+	sendMsgResult:=device.SendMessage(message)
+
+	fmt.Printf("send message %v",sendMsgResult)
 
 }

@@ -11,7 +11,7 @@ type Device interface {
 	Gateway
 	SendMessage(message Message) bool
 	ReportProperties(properties DeviceProperties) bool
-	BatchReportSubDevicesProperties(service DevicesService)
+	BatchReportSubDevicesProperties(service DevicesService) bool
 	QueryDeviceShadow(query DevicePropertyQueryRequest, handler DevicePropertyQueryResponseHandler)
 	UploadFile(filename string) bool
 	DownloadFile(filename string) bool
@@ -75,7 +75,7 @@ func (device *iotDevice) ReportProperties(properties DeviceProperties) bool {
 	}
 	return true
 }
-func (device *iotDevice) BatchReportSubDevicesProperties(service DevicesService) {
+func (device *iotDevice) BatchReportSubDevicesProperties(service DevicesService) bool {
 
 	subDeviceCounts := len(service.Devices)
 
@@ -100,8 +100,11 @@ func (device *iotDevice) BatchReportSubDevicesProperties(service DevicesService)
 		if token := device.base.Client.Publish(FormatTopic(GatewayBatchReportSubDeviceTopic, device.base.Id), device.base.qos, false, Interface2JsonString(sds));
 			token.Wait() && token.Error() != nil {
 			glog.Warningf("device %s batch report sub device properties failed", device.base.Id)
+			return false
 		}
 	}
+
+	return true
 }
 
 func (device *iotDevice) QueryDeviceShadow(query DevicePropertyQueryRequest, handler DevicePropertyQueryResponseHandler) {
@@ -456,6 +459,7 @@ func CreateIotDeviceWitConfig(config DeviceConfig) Device {
 	device.fileUrls = map[string]string{}
 
 	device.qos = config.Qos
+	device.batchSubDeviceSize = 100
 
 	result := &iotDevice{
 		base:    device,

@@ -31,17 +31,17 @@ type AsyncGateway interface {
 	baseGateway
 
 	// 网关更新子设备状态
-	UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) BooleanAsyncResult
+	UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) AsyncResult
 
 	// 网关删除子设备
-	DeleteSubDevices(deviceIds []string) BooleanAsyncResult
+	DeleteSubDevices(deviceIds []string) AsyncResult
 
 	// 网关添加子设备
-	AddSubDevices(deviceInfos []DeviceInfo) BooleanAsyncResult
+	AddSubDevices(deviceInfos []DeviceInfo) AsyncResult
 
 	// 网关同步子设备列表,默认实现不指定版本
-	SyncAllVersionSubDevices() BooleanAsyncResult
+	SyncAllVersionSubDevices() AsyncResult
 
 	// 网关同步特定版本子设备列表
-	SyncSubDevices(version int) BooleanAsyncResult
+	SyncSubDevices(version int) AsyncResult
 }

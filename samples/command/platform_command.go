@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
+	"github.com/ctlove0523/huaweicloud-iot-device-sdk-go/samples"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"log"
 	"os"
@@ -16,7 +17,8 @@ func main() {
 	mqtt.WARN = log.New(os.Stdout, "[WARN]  ", 0)
 	mqtt.DEBUG = log.New(os.Stdout, "[DEBUG] ", 0)
 	// 创建一个设备并初始化
-	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_chentong", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+	device := samples.CreateDevice()
+
 	device.Init()
 
 	// 添加用于处理平台下发命令的callback
