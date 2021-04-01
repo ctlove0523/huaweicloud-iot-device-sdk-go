@@ -14,6 +14,12 @@ huaweicloud-iot-device-sdk-go提供设备接入华为云IoT物联网平台的Go�
 
 * [文件上传/下载管理](#文件上传/下载管理)
 
+* 网关与子设备管理
+
+* 设备信息上报
+
+* 设备日志收集
+
   
 
 ## 版本说明
@@ -462,6 +468,26 @@ device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "xxx", "tls://
 device.Init()
 
 device.UploadFile("D/software/mqttfx/chentong.txt")
+~~~
+
+设备日志收集
+
+使用设备日志收集功能需要实现日志收集函数，函数的定义如下：
+
+~~~go
+type xxxLogCollector func(endTime string) []DeviceLogEntry
+~~~
+
+函数需要返回endTime之前的所有日志，DeviceLogEntry包括日志记录时间、日志类型以及日志内容。当设备收到平台下发日志收集请求后，SDK会自动的上报日志直到平台关闭日志收集或endTime范围内没有任何日志内容。
+
+~~~go
+device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+
+// 设置设备状态日志收集器
+device.SetDeviceStatusLogCollector(func(endTime string) []iot.DeviceLogEntry {
+	return []iot.DeviceLogEntry{}
+})
+device.Init()
 ~~~
 
 

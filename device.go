@@ -271,6 +271,22 @@ func (device *iotDevice) SetSubDevicesDeleteHandler(handler SubDevicesDeleteHand
 	device.base.subDevicesDeleteHandler = handler
 }
 
+func (device *iotDevice) SetDeviceStatusLogCollector(collector DeviceStatusLogCollector) {
+	device.base.SetDeviceStatusLogCollector(collector)
+}
+
+func (device *iotDevice) SetDevicePropertyLogCollector(collector DevicePropertyLogCollector) {
+	device.base.SetDevicePropertyLogCollector(collector)
+}
+
+func (device *iotDevice) SetDeviceMessageLogCollector(collector DeviceMessageLogCollector) {
+	device.base.SetDeviceMessageLogCollector(collector)
+}
+
+func (device *iotDevice) SetDeviceCommandLogCollector(collector DeviceCommandLogCollector) {
+	device.base.SetDeviceCommandLogCollector(collector)
+}
+
 func (device *iotDevice) UpdateSubDeviceState(subDevicesStatus SubDevicesStatus) bool {
 	glog.Infof("begin to update sub-devices status")
 
@@ -462,7 +478,7 @@ func CreateIotDeviceWitConfig(config DeviceConfig) Device {
 	device.batchSubDeviceSize = 100
 
 	result := &iotDevice{
-		base:    device,
+		base: device,
 	}
 	return result
 }

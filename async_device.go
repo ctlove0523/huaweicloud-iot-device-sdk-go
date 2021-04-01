@@ -96,6 +96,22 @@ func (device *asyncDevice) SetDeviceUpgradeHandler(handler DeviceUpgradeHandler)
 	device.base.SetDeviceUpgradeHandler(handler)
 }
 
+func (device *asyncDevice) SetDeviceStatusLogCollector(collector DeviceStatusLogCollector) {
+	device.base.SetDeviceStatusLogCollector(collector)
+}
+
+func (device *asyncDevice) SetDevicePropertyLogCollector(collector DevicePropertyLogCollector) {
+	device.base.SetDevicePropertyLogCollector(collector)
+}
+
+func (device *asyncDevice) SetDeviceMessageLogCollector(collector DeviceMessageLogCollector) {
+	device.base.SetDeviceMessageLogCollector(collector)
+}
+
+func (device *asyncDevice) SetDeviceCommandLogCollector(collector DeviceCommandLogCollector) {
+	device.base.SetDeviceCommandLogCollector(collector)
+}
+
 func (device *asyncDevice) SendMessage(message Message) AsyncResult {
 	asyncResult := NewBooleanAsyncResult()
 	go func() {
