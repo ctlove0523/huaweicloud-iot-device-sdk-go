@@ -295,3 +295,21 @@ type ReportDeviceInfoEventParas struct {
 	SwVersion        string `json:"sw_version,omitempty"`
 	FwVersion        string `json:"fw_version,omitempty"`
 }
+
+// 设备状态日志收集器
+type DeviceStatusLogCollector func(endTime string) []DeviceLogEntry
+
+// 设备属性日志收集器
+type DevicePropertyLogCollector func(endTime string) []DeviceLogEntry
+
+// 设备消息日志收集器
+type DeviceMessageLogCollector func(endTime string) []DeviceLogEntry
+
+// 设备命令日志收集器
+type DeviceCommandLogCollector func(endTime string) []DeviceLogEntry
+
+type DeviceLogEntry struct {
+	Timestamp string `json:"timestamp"` // 日志产生时间
+	Type      string `json:"type"`      // 日志类型：DEVICE_STATUS，DEVICE_PROPERTY ，DEVICE_MESSAGE ，DEVICE_COMMAND
+	Content   string `json:"content"`   // 日志内容
+}

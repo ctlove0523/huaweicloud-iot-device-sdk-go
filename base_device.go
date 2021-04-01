@@ -4,17 +4,19 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/golang/glog"
 	"strings"
+	"sync"
 	"time"
 )
 
 type DeviceConfig struct {
-	Id       string
-	Password string
-	Servers  string
-	Qos      byte
+	Id                 string
+	Password           string
+	Servers            string
+	Qos                byte
 	BatchSubDeviceSize int
 }
 
@@ -29,6 +31,41 @@ type BaseDevice interface {
 	SetPropertyQueryHandler(handler DevicePropertyQueryHandler)
 	SetSwFwVersionReporter(handler SwFwVersionReporter)
 	SetDeviceUpgradeHandler(handler DeviceUpgradeHandler)
+
+	SetDeviceStatusLogCollector(collector DeviceStatusLogCollector)
+	SetDevicePropertyLogCollector(collector DevicePropertyLogCollector)
+	SetDeviceMessageLogCollector(collector DeviceMessageLogCollector)
+	SetDeviceCommandLogCollector(collector DeviceCommandLogCollector)
+}
+
+type LogCollectionConfig struct {
+	rw               sync.RWMutex
+	logCollectSwitch bool   //on：开启设备侧日志收集功能 off：关闭设备侧日志收集开关
+	endTime          string // format yyyy-MM-dd'T'HH:mm:ss'Z'
+}
+
+func (lcc *LogCollectionConfig) setLogCollectSwitch(switchFlag bool) {
+	lcc.rw.Lock()
+	defer lcc.rw.Unlock()
+	lcc.logCollectSwitch = switchFlag
+}
+
+func (lcc *LogCollectionConfig) setEndTime(endTime string) {
+	lcc.rw.Lock()
+	defer lcc.rw.Unlock()
+	lcc.endTime = endTime
+}
+
+func (lcc *LogCollectionConfig) getLogCollectSwitch() bool {
+	lcc.rw.RLock()
+	defer lcc.rw.RUnlock()
+	return lcc.logCollectSwitch
+}
+
+func (lcc *LogCollectionConfig) getEndTime() string {
+	lcc.rw.RLock()
+	defer lcc.rw.RUnlock()
+	return lcc.endTime
 }
 
 type baseIotDevice struct {
@@ -49,6 +86,11 @@ type baseIotDevice struct {
 	fileUrls                       map[string]string
 	qos                            byte
 	batchSubDeviceSize             int
+	lcc                            *LogCollectionConfig
+	deviceStatusLogCollector       DeviceStatusLogCollector
+	devicePropertyLogCollector     DevicePropertyLogCollector
+	deviceMessageLogCollector      DeviceMessageLogCollector
+	deviceCommandLogCollector      DeviceCommandLogCollector
 }
 
 func (device *baseIotDevice) DisConnect() {
@@ -138,6 +180,22 @@ func (device *baseIotDevice) SetDeviceUpgradeHandler(handler DeviceUpgradeHandle
 
 func (device *baseIotDevice) SetPropertyQueryHandler(handler DevicePropertyQueryHandler) {
 	device.propertyQueryHandler = handler
+}
+
+func (device *baseIotDevice) SetDeviceStatusLogCollector(collector DeviceStatusLogCollector) {
+	device.deviceStatusLogCollector = collector
+}
+
+func (device *baseIotDevice) SetDevicePropertyLogCollector(collector DevicePropertyLogCollector) {
+	device.devicePropertyLogCollector = collector
+}
+
+func (device *baseIotDevice) SetDeviceMessageLogCollector(collector DeviceMessageLogCollector) {
+	device.deviceMessageLogCollector = collector
+}
+
+func (device *baseIotDevice) SetDeviceCommandLogCollector(collector DeviceCommandLogCollector) {
+	device.deviceCommandLogCollector = collector
 }
 
 func assembleClientId(device *baseIotDevice) string {
@@ -387,12 +445,108 @@ func (device *baseIotDevice) handlePlatformToDeviceData() func(client mqtt.Clien
 					continue
 				}
 				device.upgradeDevice(0, upgradeInfo)
+
+			case "log_config":
+				// 平台下发日志收集通知
+				logConfig := &LogCollectionConfig{}
+				if json.Unmarshal([]byte(Interface2JsonString(entry.Paras)), logConfig) != nil {
+					continue
+				}
+
+				lcc := &LogCollectionConfig{
+					logCollectSwitch: logConfig.logCollectSwitch,
+					endTime:          logConfig.endTime,
+				}
+				device.lcc = lcc
+				device.reportLogsWorker()
 			}
 		}
 
 	}
 
 	return handler
+}
+
+func (device *baseIotDevice) reportLogsWorker() {
+	go func() {
+		for ; ; {
+			if !device.lcc.getLogCollectSwitch() {
+				break
+			}
+			logs := device.deviceStatusLogCollector(device.lcc.getEndTime())
+			if len(logs) == 0 {
+				fmt.Println("no log about device status")
+				break
+			}
+			device.reportLogs(logs)
+		}
+
+	}()
+
+	go func() {
+		for ; ; {
+			if !device.lcc.getLogCollectSwitch() {
+				break
+			}
+			logs := device.devicePropertyLogCollector(device.lcc.getEndTime())
+			if len(logs) == 0 {
+				fmt.Println("no log about device property")
+				break
+			}
+			device.reportLogs(logs)
+		}
+
+	}()
+
+	go func() {
+		for ; ; {
+			if !device.lcc.getLogCollectSwitch() {
+				break
+			}
+			logs := device.deviceMessageLogCollector(device.lcc.getEndTime())
+			if len(logs) == 0 {
+				fmt.Println("no log about device message")
+				break
+			}
+			device.reportLogs(logs)
+		}
+
+	}()
+
+	go func() {
+		for ; ; {
+			if !device.lcc.getLogCollectSwitch() {
+				break
+			}
+			logs := device.deviceCommandLogCollector(device.lcc.getEndTime())
+			if len(logs) == 0 {
+				fmt.Println("no log about device command")
+				break
+			}
+			device.reportLogs(logs)
+		}
+
+	}()
+
+}
+
+func (device *baseIotDevice) reportLogs(logs []DeviceLogEntry) {
+	var dataEntries []DataEntry
+	for _, log := range logs {
+		dataEntry := DataEntry{
+			ServiceId: "$log",
+			EventType: "log_report",
+			EventTime: GetEventTimeStamp(),
+			Paras:     log,
+		}
+		dataEntries = append(dataEntries, dataEntry)
+	}
+	data := Data{
+		Services: dataEntries,
+	}
+
+	reportedLog := Interface2JsonString(data)
+	device.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 0, false, reportedLog)
 }
 
 func (device *baseIotDevice) reportVersion() {
