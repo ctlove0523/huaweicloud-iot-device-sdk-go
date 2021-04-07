@@ -380,7 +380,7 @@ func (device *baseIotDevice) subscribeDefaultTopics() {
 		panic(0)
 	}
 
-	// 订阅平台下发的文件上传和下载URL topic
+	// 订阅平台下发到设备的事件
 	topic = FormatTopic(PlatformEventToDeviceTopic, device.Id)
 	if token := device.Client.Subscribe(topic, device.qos, device.handlePlatformToDeviceData());
 		token.Wait() && token.Error() != nil {
@@ -448,6 +448,7 @@ func (device *baseIotDevice) handlePlatformToDeviceData() func(client mqtt.Clien
 
 			case "log_config":
 				// 平台下发日志收集通知
+				fmt.Println("platform send log collect command")
 				logConfig := &LogCollectionConfig{}
 				if json.Unmarshal([]byte(Interface2JsonString(entry.Paras)), logConfig) != nil {
 					continue
