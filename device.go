@@ -1,6 +1,7 @@
 package iot
 
 import (
+	"fmt"
 	"github.com/golang/glog"
 	uuid "github.com/satori/go.uuid"
 	"time"
@@ -16,6 +17,7 @@ type Device interface {
 	UploadFile(filename string) bool
 	DownloadFile(filename string) bool
 	ReportDeviceInfo(swVersion, fwVersion string)
+	ReportLogs(logs []DeviceLogEntry) bool
 }
 
 type iotDevice struct {
@@ -54,6 +56,40 @@ func (device *iotDevice) SetDeviceUpgradeHandler(handler DeviceUpgradeHandler) {
 
 func (device *iotDevice) SetPropertyQueryHandler(handler DevicePropertyQueryHandler) {
 	device.base.SetPropertyQueryHandler(handler)
+}
+
+func (device *iotDevice) ReportLogs(logs []DeviceLogEntry) bool {
+	var services []ReportDeviceLogServiceEvent
+
+	for _, logEntry := range logs {
+		service := ReportDeviceLogServiceEvent{
+			BaseServiceEvent: BaseServiceEvent{
+				ServiceId: "$log",
+				EventType: "log_report",
+				EventTime: GetEventTimeStamp(),
+			},
+			Paras: logEntry,
+		}
+
+		services = append(services, service)
+	}
+
+	request := ReportDeviceLogRequest{
+		Services: services,
+	}
+
+	fmt.Println(Interface2JsonString(request))
+
+	topic := FormatTopic(DeviceToPlatformTopic, device.base.Id)
+
+	token := device.base.Client.Publish(topic, 1, false, Interface2JsonString(request))
+
+	if token.Wait() && token.Error() != nil {
+		glog.Errorf("device %s report log failed", device.base.Id)
+		return false
+	} else {
+		return true
+	}
 }
 
 func (device *iotDevice) SendMessage(message Message) bool {

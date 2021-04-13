@@ -32,8 +32,9 @@ func main() {
 		Content:        "Hello Huawei IoT Platform",
 	}
 
-	sendMsgResult:=device.SendMessage(message)
-
-	fmt.Printf("send message %v",sendMsgResult)
+	for i := 0; i < 100; i++ {
+		sendMsgResult := device.SendMessage(message)
+		fmt.Printf("send message %v", sendMsgResult)
+	}
 
 }

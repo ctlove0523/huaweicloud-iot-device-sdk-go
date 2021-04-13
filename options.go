@@ -296,6 +296,16 @@ type ReportDeviceInfoEventParas struct {
 	FwVersion        string `json:"fw_version,omitempty"`
 }
 
+// 上报设备日志请求
+type ReportDeviceLogRequest struct {
+	Services       []ReportDeviceLogServiceEvent `json:"services,omitempty"`
+}
+
+type ReportDeviceLogServiceEvent struct {
+	BaseServiceEvent
+	Paras DeviceLogEntry `json:"paras,omitempty"`
+}
+
 // 设备状态日志收集器
 type DeviceStatusLogCollector func(endTime string) []DeviceLogEntry
 

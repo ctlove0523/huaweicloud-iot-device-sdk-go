@@ -10,31 +10,24 @@ import (
 
 func main() {
 	device := samples.CreateDevice()
-	device.AddMessageHandler(func(message iot.Message) bool {
-		fmt.Println(message)
-		return true
-	})
-	device.SetSubDevicesAddHandler(func(devices iot.SubDeviceInfo) {
-		fmt.Println(device)
-	})
-	device.SetSubDevicesDeleteHandler(func(devices iot.SubDeviceInfo) {
-		fmt.Println(device)
-	})
-	device.SetDeviceStatusLogCollector(func(endTime string) []iot.DeviceLogEntry {
-		fmt.Println("begin to collect log")
-		entries := []iot.DeviceLogEntry{}
-
-		for i := 0; i < 10; i++ {
-			entry := iot.DeviceLogEntry{
-				Type:      "DEVICE_MESSAGE",
-				Timestamp: iot.GetEventTimeStamp(),
-				Content:   "message hello " + strconv.Itoa(i),
-			}
-			entries = append(entries, entry)
-		}
-		return entries
-	})
 	device.Init()
+	var entries []iot.DeviceLogEntry
+
+	for i := 0; i < 10; i++ {
+		entry := iot.DeviceLogEntry{
+			Type: "DEVICE_MESSAGE",
+			//Timestamp: iot.GetEventTimeStamp(),
+			Content: "message hello " + strconv.Itoa(i),
+		}
+		entries = append(entries, entry)
+	}
+
+	for i := 0; i < 100; i++ {
+		result := device.ReportLogs(entries)
+		fmt.Println(result)
+
+		time.Sleep(2 * time.Second)
+	}
 
 	time.Sleep(1 * time.Minute)
 }
