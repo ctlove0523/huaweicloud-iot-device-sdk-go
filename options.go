@@ -80,7 +80,7 @@ type Message struct {
 // 定义平台和设备之间的数据交换结构体
 
 type Data struct {
-	ObjectDeviceId string      `json:"object_device_id"`
+	ObjectDeviceId string      `json:"object_device_id,omitempty"`
 	Services       []DataEntry `json:"services"`
 }
 

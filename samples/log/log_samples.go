@@ -26,7 +26,6 @@ func main() {
 		result := device.ReportLogs(entries)
 		fmt.Println(result)
 
-		time.Sleep(2 * time.Second)
 	}
 
 	time.Sleep(1 * time.Minute)

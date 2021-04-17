@@ -394,7 +394,9 @@ func (device *baseIotDevice) subscribeDefaultTopics() {
 func (device *baseIotDevice) handlePlatformToDeviceData() func(client mqtt.Client, message mqtt.Message) {
 	handler := func(client mqtt.Client, message mqtt.Message) {
 		data := &Data{}
-		if json.Unmarshal(message.Payload(), data) != nil {
+		err:=json.Unmarshal(message.Payload(), data)
+		if err!= nil {
+			fmt.Println(err)
 			return
 		}
 
