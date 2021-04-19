@@ -1,6 +1,7 @@
 package iot
 
 import (
+	"fmt"
 	"github.com/golang/glog"
 	uuid "github.com/satori/go.uuid"
 	"time"
@@ -16,6 +17,7 @@ type AsyncDevice interface {
 	UploadFile(filename string) AsyncResult
 	DownloadFile(filename string) AsyncResult
 	ReportDeviceInfo(swVersion, fwVersion string) AsyncResult
+	ReportLogs(logs []DeviceLogEntry) AsyncResult
 }
 
 func CreateAsyncIotDevice(id, password, servers string) *asyncDevice {
@@ -119,7 +121,7 @@ func (device *asyncDevice) SendMessage(message Message) AsyncResult {
 
 		messageData := Interface2JsonString(message)
 		topic := FormatTopic(MessageUpTopic, device.base.Id)
-		glog.Infof("async send message topic is %s",topic)
+		glog.Infof("async send message topic is %s", topic)
 		token := device.base.Client.Publish(topic, device.base.qos, false, messageData)
 		if token.Wait() && token.Error() != nil {
 			glog.Warning("async send message failed")
@@ -394,6 +396,46 @@ func (device *asyncDevice) ReportDeviceInfo(swVersion, fwVersion string) AsyncRe
 	}()
 
 	return asyncResult
+}
+
+func (device *asyncDevice) ReportLogs(logs []DeviceLogEntry) AsyncResult {
+	asyncresult := NewBooleanAsyncResult()
+
+	go func() {
+		var services []ReportDeviceLogServiceEvent
+
+		for _, logEntry := range logs {
+			service := ReportDeviceLogServiceEvent{
+				BaseServiceEvent: BaseServiceEvent{
+					ServiceId: "$log",
+					EventType: "log_report",
+					EventTime: GetEventTimeStamp(),
+				},
+				Paras: logEntry,
+			}
+
+			services = append(services, service)
+		}
+
+		request := ReportDeviceLogRequest{
+			Services: services,
+		}
+
+		fmt.Println(Interface2JsonString(request))
+
+		topic := FormatTopic(DeviceToPlatformTopic, device.base.Id)
+
+		token := device.base.Client.Publish(topic, 1, false, Interface2JsonString(request))
+
+		if token.Wait() && token.Error() != nil {
+			glog.Errorf("device %s report log failed", device.base.Id)
+			asyncresult.completeError(token.Error())
+		} else {
+			asyncresult.completeSuccess()
+		}
+	}()
+
+	return asyncresult
 }
 
 func (device *asyncDevice) SetSubDevicesAddHandler(handler SubDevicesAddHandler) {
