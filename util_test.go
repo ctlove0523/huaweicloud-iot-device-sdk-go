@@ -1,12 +1,11 @@
 package iot
 
 import (
-	"fmt"
 	"testing"
 )
 
 func TestTimeStamp(t *testing.T) {
-	timeStamp := TimeStamp()
+	timeStamp := timeStamp()
 	if len(timeStamp) != 10 {
 		t.Error(`Time Stamp length must be 10`)
 	}
@@ -20,8 +19,8 @@ func TestDataCollectionTime(t *testing.T) {
 
 func TestHmacSha256(t *testing.T) {
 	encodedPassword := "c0fefa1341fb0647290e93f641a9bcea74cd32111668cdc5f7418553640a55cc"
-	if HmacSha256("123456789", "202012222200") != encodedPassword {
-		t.Errorf("encoded password must be %s but is %s", encodedPassword, HmacSha256("123456789", "202012222200"))
+	if hmacSha256("123456789", "202012222200") != encodedPassword {
+		t.Errorf("encoded password must be %s but is %s", encodedPassword, hmacSha256("123456789", "202012222200"))
 	}
 }
 
@@ -33,7 +32,7 @@ func TestInterface2JsonString(t *testing.T) {
 
 func TestGetTopicRequestId(t *testing.T) {
 	topic := "$os/device/down/request=123456789"
-	if GetTopicRequestId(topic) != "123456789" {
+	if getTopicRequestId(topic) != "123456789" {
 		t.Errorf("topic request id must be %s", "123456789")
 	}
 }
@@ -41,9 +40,9 @@ func TestGetTopicRequestId(t *testing.T) {
 func TestFormatTopic(t *testing.T) {
 	topic := "$os/device/{device_id}/up"
 	deviceId := "123"
-	formatTopic := "$os/device/123/up"
-	if formatTopic != FormatTopic(topic, deviceId) {
-		t.Errorf("formated topic must be %s", formatTopic)
+	formatTopicName := "$os/device/123/up"
+	if formatTopicName != formatTopic(topic, deviceId) {
+		t.Errorf("formated topic must be %s", formatTopicName)
 	}
 
 }
@@ -51,10 +50,9 @@ func TestFormatTopic(t *testing.T) {
 // 仅适用于windows系统
 func TestSmartFileName(t *testing.T) {
 	fileName := "D/go/sdk/test.log"
-	smartFileName := "D:\\go\\sdk\\test.log"
-	fmt.Println(SmartFileName(fileName))
+	name := "D:\\go\\sdk\\test.log"
 
-	if smartFileName != SmartFileName(fileName) {
-		t.Errorf("in windows file system,smart file name must be %s", smartFileName)
+	if name != smartFileName(fileName) {
+		t.Errorf("in windows file system,smart file name must be %s", name)
 	}
 }

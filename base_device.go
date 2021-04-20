@@ -161,7 +161,7 @@ func (device *baseIotDevice) Init() bool {
 	options.AddBroker(device.Servers)
 	options.SetClientID(assembleClientId(device))
 	options.SetUsername(device.Id)
-	options.SetPassword(HmacSha256(device.Password, TimeStamp()))
+	options.SetPassword(hmacSha256(device.Password, timeStamp()))
 	options.SetKeepAlive(250 * time.Second)
 	options.SetAutoReconnect(true)
 	options.SetConnectRetry(true)
@@ -252,7 +252,7 @@ func assembleClientId(device *baseIotDevice) string {
 	segments[0] = device.Id
 	segments[1] = "0"
 	segments[2] = "0"
-	segments[3] = TimeStamp()
+	segments[3] = timeStamp()
 
 	return strings.Join(segments, "_")
 }
@@ -291,7 +291,7 @@ func (device *baseIotDevice) createCommandMqttHandler() func(client mqtt.Client,
 					ResultCode: 1,
 				})
 			}
-			if token := device.Client.Publish(FormatTopic(CommandResponseTopic, device.Id)+GetTopicRequestId(message.Topic()), 1, false, res);
+			if token := device.Client.Publish(formatTopic(CommandResponseTopic, device.Id)+getTopicRequestId(message.Topic()), 1, false, res);
 				token.Wait() && token.Error() != nil {
 				glog.Infof("device %s send command response failed", device.Id)
 			}
@@ -329,7 +329,7 @@ func (device *baseIotDevice) createPropertiesSetMqttHandler() func(client mqtt.C
 				response.ResultDesc = "Set properties failed."
 				res = Interface2JsonString(response)
 			}
-			if token := device.Client.Publish(FormatTopic(PropertiesSetResponseTopic, device.Id)+GetTopicRequestId(message.Topic()), device.qos, false, res);
+			if token := device.Client.Publish(formatTopic(PropertiesSetResponseTopic, device.Id)+getTopicRequestId(message.Topic()), device.qos, false, res);
 				token.Wait() && token.Error() != nil {
 				glog.Warningf("unmarshal platform properties set request failed,device id = %s，message = %s", device.Id, message)
 			}
@@ -366,7 +366,7 @@ func (device *baseIotDevice) createPropertiesQueryMqttHandler() func(client mqtt
 
 			queryResult := device.propertyQueryHandler(*propertiesQueryRequest)
 			responseToPlatform := Interface2JsonString(queryResult)
-			if token := device.Client.Publish(FormatTopic(PropertiesQueryResponseTopic, device.Id)+GetTopicRequestId(message.Topic()), device.qos, false, responseToPlatform);
+			if token := device.Client.Publish(formatTopic(PropertiesQueryResponseTopic, device.Id)+getTopicRequestId(message.Topic()), device.qos, false, responseToPlatform);
 				token.Wait() && token.Error() != nil {
 				glog.Warningf("device %s send properties query response failed.", device.Id)
 			}
@@ -390,7 +390,7 @@ func (device *baseIotDevice) createPropertiesQueryResponseMqttHandler() func(cli
 
 func (device *baseIotDevice) subscribeDefaultTopics() {
 	// 订阅平台命令下发topic
-	topic := FormatTopic(CommandDownTopic, device.Id)
+	topic := formatTopic(CommandDownTopic, device.Id)
 	if token := device.Client.Subscribe(topic, device.qos, device.createCommandMqttHandler());
 		token.Wait() && token.Error() != nil {
 		glog.Warningf("device %s subscribe platform send command topic %s failed", device.Id, topic)
@@ -398,7 +398,7 @@ func (device *baseIotDevice) subscribeDefaultTopics() {
 	}
 
 	// 订阅平台消息下发的topic
-	topic = FormatTopic(MessageDownTopic, device.Id)
+	topic = formatTopic(MessageDownTopic, device.Id)
 	if token := device.Client.Subscribe(topic, device.qos, device.createMessageMqttHandler());
 		token.Wait() && token.Error() != nil {
 		glog.Warningf("device % subscribe platform send message topic %s failed.", device.Id, topic)
@@ -406,7 +406,7 @@ func (device *baseIotDevice) subscribeDefaultTopics() {
 	}
 
 	// 订阅平台设置设备属性的topic
-	topic = FormatTopic(PropertiesSetRequestTopic, device.Id)
+	topic = formatTopic(PropertiesSetRequestTopic, device.Id)
 	if token := device.Client.Subscribe(topic, device.qos, device.createPropertiesSetMqttHandler());
 		token.Wait() && token.Error() != nil {
 		glog.Warningf("device %s subscribe platform set properties topic %s failed", device.Id, topic)
@@ -414,7 +414,7 @@ func (device *baseIotDevice) subscribeDefaultTopics() {
 	}
 
 	// 订阅平台查询设备属性的topic
-	topic = FormatTopic(PropertiesQueryRequestTopic, device.Id)
+	topic = formatTopic(PropertiesQueryRequestTopic, device.Id)
 	if token := device.Client.Subscribe(topic, device.qos, device.createPropertiesQueryMqttHandler())
 		token.Wait() && token.Error() != nil {
 		glog.Warningf("device %s subscriber platform query device properties topic failed %s", device.Id, topic)
@@ -422,7 +422,7 @@ func (device *baseIotDevice) subscribeDefaultTopics() {
 	}
 
 	// 订阅查询设备影子响应的topic
-	topic = FormatTopic(DeviceShadowQueryResponseTopic, device.Id)
+	topic = formatTopic(DeviceShadowQueryResponseTopic, device.Id)
 	if token := device.Client.Subscribe(topic, device.qos, device.createPropertiesQueryResponseMqttHandler());
 		token.Wait() && token.Error() != nil {
 		glog.Warningf("device %s subscribe query device shadow topic %s failed", device.Id, topic)
@@ -430,7 +430,7 @@ func (device *baseIotDevice) subscribeDefaultTopics() {
 	}
 
 	// 订阅平台下发到设备的事件
-	topic = FormatTopic(PlatformEventToDeviceTopic, device.Id)
+	topic = formatTopic(PlatformEventToDeviceTopic, device.Id)
 	if token := device.Client.Subscribe(topic, device.qos, device.handlePlatformToDeviceData());
 		token.Wait() && token.Error() != nil {
 		glog.Warningf("device %s subscribe query device shadow topic %s failed", device.Id, topic)
@@ -598,7 +598,7 @@ func (device *baseIotDevice) reportLogs(logs []DeviceLogEntry) {
 	}
 
 	reportedLog := Interface2JsonString(data)
-	device.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), 0, false, reportedLog)
+	device.Client.Publish(formatTopic(DeviceToPlatformTopic, device.Id), 0, false, reportedLog)
 }
 
 func (device *baseIotDevice) reportVersion() {
@@ -620,7 +620,7 @@ func (device *baseIotDevice) reportVersion() {
 		Services:       []DataEntry{dataEntry},
 	}
 
-	device.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), device.qos, false, Interface2JsonString(data))
+	device.Client.Publish(formatTopic(DeviceToPlatformTopic, device.Id), device.qos, false, Interface2JsonString(data))
 }
 
 func (device *baseIotDevice) upgradeDevice(upgradeType byte, upgradeInfo *UpgradeInfo) {
@@ -636,7 +636,7 @@ func (device *baseIotDevice) upgradeDevice(upgradeType byte, upgradeInfo *Upgrad
 		Services:       []DataEntry{dataEntry},
 	}
 
-	if token := device.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.Id), device.qos, false, Interface2JsonString(data));
+	if token := device.Client.Publish(formatTopic(DeviceToPlatformTopic, device.Id), device.qos, false, Interface2JsonString(data));
 		token.Wait() && token.Error() != nil {
 		glog.Errorf("device %s upgrade failed,type %d", device.Id, upgradeType)
 	}

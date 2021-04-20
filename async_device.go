@@ -120,7 +120,7 @@ func (device *asyncDevice) SendMessage(message Message) AsyncResult {
 		glog.Info("begin async send message")
 
 		messageData := Interface2JsonString(message)
-		topic := FormatTopic(MessageUpTopic, device.base.Id)
+		topic := formatTopic(MessageUpTopic, device.base.Id)
 		glog.Infof("async send message topic is %s", topic)
 		token := device.base.Client.Publish(topic, device.base.qos, false, messageData)
 		if token.Wait() && token.Error() != nil {
@@ -139,7 +139,7 @@ func (device *asyncDevice) ReportProperties(properties DeviceProperties) AsyncRe
 	go func() {
 		glog.Info("begin to report properties")
 		propertiesData := Interface2JsonString(properties)
-		if token := device.base.Client.Publish(FormatTopic(PropertiesUpTopic, device.base.Id), device.base.qos, false, propertiesData);
+		if token := device.base.Client.Publish(formatTopic(PropertiesUpTopic, device.base.Id), device.base.qos, false, propertiesData);
 			token.Wait() && token.Error() != nil {
 			glog.Warningf("device %s async report properties failed", device.base.Id)
 			asyncResult.completeError(token.Error())
@@ -176,7 +176,7 @@ func (device *asyncDevice) BatchReportSubDevicesProperties(service DevicesServic
 				Devices: service.Devices[begin:end],
 			}
 
-			if token := device.base.Client.Publish(FormatTopic(GatewayBatchReportSubDeviceTopic, device.base.Id), device.base.qos, false, Interface2JsonString(sds));
+			if token := device.base.Client.Publish(formatTopic(GatewayBatchReportSubDeviceTopic, device.base.Id), device.base.qos, false, Interface2JsonString(sds));
 				token.Wait() && token.Error() != nil {
 				glog.Warningf("device %s batch report sub device properties failed", device.base.Id)
 				loopResult = false
@@ -199,7 +199,7 @@ func (device *asyncDevice) QueryDeviceShadow(query DevicePropertyQueryRequest, h
 
 	go func() {
 		requestId := uuid.NewV4()
-		if token := device.base.Client.Publish(FormatTopic(DeviceShadowQueryRequestTopic, device.base.Id)+requestId.String(), device.base.qos, false, Interface2JsonString(query));
+		if token := device.base.Client.Publish(formatTopic(DeviceShadowQueryRequestTopic, device.base.Id)+requestId.String(), device.base.qos, false, Interface2JsonString(query));
 			token.Wait() && token.Error() != nil {
 			glog.Warningf("device %s query device shadow data failed,request id = %s", device.base.Id, requestId)
 			asyncResult.completeError(token.Error())
@@ -232,7 +232,7 @@ func (device *asyncDevice) UploadFile(filename string) AsyncResult {
 			Services: services,
 		}
 
-		if token := device.base.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request));
+		if token := device.base.Client.Publish(formatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request));
 			token.Wait() && token.Error() != nil {
 			glog.Warningf("publish file upload request url failed")
 			asyncResult.completeError(&DeviceError{
@@ -265,7 +265,7 @@ func (device *asyncDevice) UploadFile(filename string) AsyncResult {
 		}
 		glog.Infof("file upload url is %s", device.base.fileUrls[filename+FileActionUpload])
 
-		//filename = SmartFileName(filename)
+		//filename = smartFileName(filename)
 		uploadFlag := CreateHttpClient().UploadFile(filename, device.base.fileUrls[filename+FileActionUpload])
 		if !uploadFlag {
 			glog.Errorf("upload file failed")
@@ -277,7 +277,7 @@ func (device *asyncDevice) UploadFile(filename string) AsyncResult {
 
 		response := CreateFileUploadDownLoadResultResponse(filename, FileActionUpload, uploadFlag)
 
-		token := device.base.Client.Publish(FormatTopic(PlatformEventToDeviceTopic, device.base.Id), device.base.qos, false, Interface2JsonString(response))
+		token := device.base.Client.Publish(formatTopic(PlatformEventToDeviceTopic, device.base.Id), device.base.qos, false, Interface2JsonString(response))
 		if token.Wait() && token.Error() != nil {
 			glog.Error("report file upload file result failed")
 			asyncResult.completeError(token.Error())
@@ -310,7 +310,7 @@ func (device *asyncDevice) DownloadFile(filename string) AsyncResult {
 			Services: services,
 		}
 
-		if token := device.base.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request));
+		if token := device.base.Client.Publish(formatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request));
 			token.Wait() && token.Error() != nil {
 			glog.Warningf("publish file download request url failed")
 			asyncResult.completeError(&DeviceError{
@@ -352,7 +352,7 @@ func (device *asyncDevice) DownloadFile(filename string) AsyncResult {
 
 		response := CreateFileUploadDownLoadResultResponse(filename, FileActionDownload, downloadFlag)
 
-		token := device.base.Client.Publish(FormatTopic(PlatformEventToDeviceTopic, device.base.Id), device.base.qos, false, Interface2JsonString(response))
+		token := device.base.Client.Publish(formatTopic(PlatformEventToDeviceTopic, device.base.Id), device.base.qos, false, Interface2JsonString(response))
 		if token.Wait() && token.Error() != nil {
 			glog.Error("report file upload file result failed")
 			asyncResult.completeError(token.Error())
@@ -386,7 +386,7 @@ func (device *asyncDevice) ReportDeviceInfo(swVersion, fwVersion string) AsyncRe
 			Services:       []ReportDeviceInfoServiceEvent{event},
 		}
 
-		token := device.base.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request))
+		token := device.base.Client.Publish(formatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request))
 		if token.Wait() && token.Error() != nil {
 			asyncResult.completeError(token.Error())
 		} else {
@@ -423,7 +423,7 @@ func (device *asyncDevice) ReportLogs(logs []DeviceLogEntry) AsyncResult {
 
 		fmt.Println(Interface2JsonString(request))
 
-		topic := FormatTopic(DeviceToPlatformTopic, device.base.Id)
+		topic := formatTopic(DeviceToPlatformTopic, device.base.Id)
 
 		token := device.base.Client.Publish(topic, 1, false, Interface2JsonString(request))
 
@@ -484,7 +484,7 @@ func (device *asyncDevice) UpdateSubDeviceState(subDevicesStatus SubDevicesStatu
 				Services:       []DataEntry{requestEventService},
 			}
 
-			if token := device.base.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request));
+			if token := device.base.Client.Publish(formatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request));
 				token.Wait() && token.Error() != nil {
 				glog.Warningf("gateway %s update sub devices status failed", device.base.Id)
 				asyncResult.completeError(token.Error())
@@ -522,7 +522,7 @@ func (device *asyncDevice) DeleteSubDevices(deviceIds []string) AsyncResult {
 			Services:       []DataEntry{requestEventService},
 		}
 
-		if token := device.base.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request));
+		if token := device.base.Client.Publish(formatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request));
 			token.Wait() && token.Error() != nil {
 			glog.Warningf("gateway %s delete sub devices request send failed", device.base.Id)
 			asyncResult.completeError(token.Error())
@@ -558,7 +558,7 @@ func (device *asyncDevice) AddSubDevices(deviceInfos []DeviceInfo) AsyncResult {
 			Services:       []DataEntry{requestEventService},
 		}
 
-		if token := device.base.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request));
+		if token := device.base.Client.Publish(formatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(request));
 			token.Wait() && token.Error() != nil {
 			glog.Warningf("gateway %s add sub devices request send failed", device.base.Id)
 			asyncResult.completeError(token.Error())
@@ -591,7 +591,7 @@ func (device *asyncDevice) SyncAllVersionSubDevices() AsyncResult {
 			Services: dataEntries,
 		}
 
-		if token := device.base.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(data));
+		if token := device.base.Client.Publish(formatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(data));
 			token.Wait() && token.Error() != nil {
 			asyncResult.completeError(token.Error())
 		} else {
@@ -626,7 +626,7 @@ func (device *asyncDevice) SyncSubDevices(version int) AsyncResult {
 			Services: dataEntries,
 		}
 
-		if token := device.base.Client.Publish(FormatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(data));
+		if token := device.base.Client.Publish(formatTopic(DeviceToPlatformTopic, device.base.Id), device.base.qos, false, Interface2JsonString(data));
 			token.Wait() && token.Error() != nil {
 			glog.Errorf("send sync sub device request failed")
 			asyncResult.completeError(token.Error())
