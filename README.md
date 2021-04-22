@@ -14,11 +14,11 @@ huaweicloud-iot-device-sdk-go提供设备接入华为云IoT物联网平台的Go�
 
 * [文件上传/下载管理](#文件上传/下载管理)
 
-* 网关与子设备管理
+* [网关与子设备管理](#网关与子设备管理)
 
-* 设备信息上报
+* [设备信息上报](#设备信息上报)
 
-* 设备日志收集
+* [设备日志收集](#设备日志收集)
 
   
 
@@ -469,6 +469,99 @@ device.Init()
 
 device.UploadFile("D/software/mqttfx/chentong.txt")
 ~~~
+
+### 网关与子设备管理 
+
+> 当前SDK没有内置mqtt broker模块，对mqtt broker的支持正在开发中
+
+#### 网关接收子设备新增和删除通知
+
+网关如果要处理子设备新增和删除，需要注册对应的handler让SDK调用。
+
+~~~go
+device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+
+// 处理子设备添加
+device.SetSubDevicesAddHandler(func(devices iot.SubDeviceInfo) {
+	for _, info := range devices.Devices {
+		fmt.Println("handle device add")
+		fmt.Println(iot.Interface2JsonString(info))
+	}
+})
+
+// 处理子设备删除
+device.SetSubDevicesDeleteHandler(func(devices iot.SubDeviceInfo) {
+	for _, info := range devices.Devices {
+		fmt.Println("handle device delete")
+		fmt.Println(iot.Interface2JsonString(info))
+	}
+})
+
+device.Init()
+~~~
+
+
+
+#### 网关同步子设备列表
+
+* 同步所有版本的子设备
+
+  ~~~go
+  device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+  device.Init()
+  device.SyncAllVersionSubDevices()
+  ~~~
+
+* 同步指定版本的子设备
+
+  ~~~go
+  device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+  device.Init()
+  device.SyncSubDevices(version int)
+  ~~~
+
+#### 网关新增子设备
+
+```go
+device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+device.Init()
+result:= device.AddSubDevices(deviceInfos) // deviceInfos 的类型为[]DeviceInfo
+```
+
+
+
+#### 网关删除子设备
+
+```go
+device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+device.Init()
+result:= device.DeleteSubDevices(deviceIds) // deviceIds的类型为[]string
+```
+
+
+
+#### 网关更新子设备状态
+
+```go
+device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+device.Init()
+result:= device.UpdateSubDeviceState(subDevicesStatus) //subDevicesStatus的类型SubDevicesStatus
+```
+
+
+
+### 设备信息上报 
+
+设备可以向平台上报SDK版本、软固件版本信息，其中SDK的版本信息SDK自动填充
+
+~~~go
+device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+device.Init()
+
+device.ReportDeviceInfo("1.0", "2.0")
+~~~
+
+
 
 ### 设备日志收集
 
