@@ -20,7 +20,7 @@ type httpClient struct {
 
 func (client *httpClient) DownloadFile(fileName, downloadUrl string) bool {
 	glog.Infof("begin to download file %s, url = %s", fileName, downloadUrl)
-	fileName = SmartFileName(fileName)
+	fileName = smartFileName(fileName)
 	out, err := os.Create(fileName)
 	if err != nil {
 		glog.Errorf("create file in os failed ,file name %s", fileName)
@@ -53,7 +53,7 @@ func (client *httpClient) DownloadFile(fileName, downloadUrl string) bool {
 }
 
 func (client *httpClient) UploadFile(filename, uri string) bool {
-	filename = SmartFileName(filename)
+	filename = smartFileName(filename)
 	fileBytes, err := ioutil.ReadFile(filename)
 
 	if err != nil {

@@ -80,7 +80,7 @@ type Message struct {
 // 定义平台和设备之间的数据交换结构体
 
 type Data struct {
-	ObjectDeviceId string      `json:"object_device_id"`
+	ObjectDeviceId string      `json:"object_device_id,omitempty"`
 	Services       []DataEntry `json:"services"`
 }
 
@@ -294,4 +294,32 @@ type ReportDeviceInfoEventParas struct {
 	DeviceSdkVersion string `json:"device_sdk_version,omitempty"`
 	SwVersion        string `json:"sw_version,omitempty"`
 	FwVersion        string `json:"fw_version,omitempty"`
+}
+
+// 上报设备日志请求
+type ReportDeviceLogRequest struct {
+	Services       []ReportDeviceLogServiceEvent `json:"services,omitempty"`
+}
+
+type ReportDeviceLogServiceEvent struct {
+	BaseServiceEvent
+	Paras DeviceLogEntry `json:"paras,omitempty"`
+}
+
+// 设备状态日志收集器
+type DeviceStatusLogCollector func(endTime string) []DeviceLogEntry
+
+// 设备属性日志收集器
+type DevicePropertyLogCollector func(endTime string) []DeviceLogEntry
+
+// 设备消息日志收集器
+type DeviceMessageLogCollector func(endTime string) []DeviceLogEntry
+
+// 设备命令日志收集器
+type DeviceCommandLogCollector func(endTime string) []DeviceLogEntry
+
+type DeviceLogEntry struct {
+	Timestamp string `json:"timestamp"` // 日志产生时间
+	Type      string `json:"type"`      // 日志类型：DEVICE_STATUS，DEVICE_PROPERTY ，DEVICE_MESSAGE ，DEVICE_COMMAND
+	Content   string `json:"content"`   // 日志内容
 }

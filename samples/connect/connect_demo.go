@@ -1,35 +1,21 @@
 package main
 
 import (
-	iot "github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
-	"strconv"
-	"time"
+	"fmt"
+	"github.com/ctlove0523/huaweicloud-iot-device-sdk-go/samples"
 )
 
-const password = "123456789"
-const server = "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883"
-const produceId = "5fdb75cccbfe2f02ce81d4bf"
-
-
 func main() {
-	content := iot.Message{
-		Content: "test content",
-	}
-	for i := 1; i <= 110; i++ {
-		go SendMessage(strconv.Itoa(i), content)
-	}
+	device := samples.CreateDevice()
 
-	time.Sleep(time.Hour)
-}
+	initResult := device.Init()
 
-func SendMessage(id string, message iot.Message) {
-	device := iot.CreateIotDevice(produceId+"_test-"+id, password, server)
-	device.Init()
+	fmt.Printf("device init %v\n", initResult)
 
-	for i := 0; i < 100; i++ {
-		device.SendMessage(message)
-	}
+	fmt.Printf("device connected to server %v\n", device.IsConnected())
 
-	time.Sleep(time.Hour)
+	device.DisConnect()
+
+	fmt.Printf("device connected to server %v\n", device.IsConnected())
 
 }

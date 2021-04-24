@@ -10,7 +10,7 @@ import (
 )
 
 // 时间戳：为设备连接平台时的UTC时间，格式为YYYYMMDDHH，如UTC 时间2018/7/24 17:56:20 则应表示为2018072417。
-func TimeStamp() string {
+func timeStamp() string {
 	strFormatTime := time.Now().Format("2006-01-02 15:04:05")
 	strFormatTime = strings.ReplaceAll(strFormatTime, "-", "")
 	strFormatTime = strings.ReplaceAll(strFormatTime, " ", "")
@@ -25,7 +25,7 @@ func GetEventTimeStamp() string {
 	return now.Format("20060102T150405Z")
 }
 
-func HmacSha256(data string, secret string) string {
+func hmacSha256(data string, secret string) string {
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write([]byte(data))
 	return hex.EncodeToString(h.Sum(nil))
@@ -42,16 +42,16 @@ func Interface2JsonString(v interface{}) string {
 	return string(byteData)
 }
 
-func GetTopicRequestId(topic string) string {
+func getTopicRequestId(topic string) string {
 	return strings.Split(topic, "=")[1]
 }
 
-func FormatTopic(topic, deviceId string) string {
+func formatTopic(topic, deviceId string) string {
 	return strings.ReplaceAll(topic, "{device_id}", deviceId)
 }
 
 // 根据当前运行的操作系统重新修改文件路径以适配操作系统
-func SmartFileName(filename string) string {
+func smartFileName(filename string) string {
 	// Windows操作系统适配
 	if strings.Contains(OsName(), "windows") {
 		pathParts := strings.Split(filename, "/")

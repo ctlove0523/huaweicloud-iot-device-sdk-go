@@ -14,6 +14,12 @@ huaweicloud-iot-device-sdk-go提供设备接入华为云IoT物联网平台的Go�
 
 * [文件上传/下载管理](#文件上传/下载管理)
 
+* [网关与子设备管理](#网关与子设备管理)
+
+* [设备信息上报](#设备信息上报)
+
+* [设备日志收集](#设备日志收集)
+
   
 
 ## 版本说明
@@ -463,6 +469,139 @@ device.Init()
 
 device.UploadFile("D/software/mqttfx/chentong.txt")
 ~~~
+
+### 网关与子设备管理 
+
+> 当前SDK没有内置mqtt broker模块，对mqtt broker的支持正在开发中
+
+#### 网关接收子设备新增和删除通知
+
+网关如果要处理子设备新增和删除，需要注册对应的handler让SDK调用。
+
+~~~go
+device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+
+// 处理子设备添加
+device.SetSubDevicesAddHandler(func(devices iot.SubDeviceInfo) {
+	for _, info := range devices.Devices {
+		fmt.Println("handle device add")
+		fmt.Println(iot.Interface2JsonString(info))
+	}
+})
+
+// 处理子设备删除
+device.SetSubDevicesDeleteHandler(func(devices iot.SubDeviceInfo) {
+	for _, info := range devices.Devices {
+		fmt.Println("handle device delete")
+		fmt.Println(iot.Interface2JsonString(info))
+	}
+})
+
+device.Init()
+~~~
+
+
+
+#### 网关同步子设备列表
+
+* 同步所有版本的子设备
+
+  ~~~go
+  device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+  device.Init()
+  device.SyncAllVersionSubDevices()
+  ~~~
+
+* 同步指定版本的子设备
+
+  ~~~go
+  device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+  device.Init()
+  device.SyncSubDevices(version int)
+  ~~~
+
+#### 网关新增子设备
+
+```go
+device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+device.Init()
+result:= device.AddSubDevices(deviceInfos) // deviceInfos 的类型为[]DeviceInfo
+```
+
+
+
+#### 网关删除子设备
+
+```go
+device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+device.Init()
+result:= device.DeleteSubDevices(deviceIds) // deviceIds的类型为[]string
+```
+
+
+
+#### 网关更新子设备状态
+
+```go
+device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+device.Init()
+result:= device.UpdateSubDeviceState(subDevicesStatus) //subDevicesStatus的类型SubDevicesStatus
+```
+
+
+
+### 设备信息上报 
+
+设备可以向平台上报SDK版本、软固件版本信息，其中SDK的版本信息SDK自动填充
+
+~~~go
+device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+device.Init()
+
+device.ReportDeviceInfo("1.0", "2.0")
+~~~
+
+
+
+### 设备日志收集
+
+设备日志功能主要包括：平台下发日志收集命令，设备上报平台指定时间段内的日志；设备调用接口主动上报日志。
+
+* 设备响应平台日志收集命令
+
+  设备响应日志收集功能需要实现日志收集函数，函数的定义如下：
+
+  ~~~go
+  // 设备状态日志收集器
+  type DeviceStatusLogCollector func(endTime string) []DeviceLogEntry
+  
+  // 设备属性日志收集器
+  type DevicePropertyLogCollector func(endTime string) []DeviceLogEntry
+  
+  // 设备消息日志收集器
+  type DeviceMessageLogCollector func(endTime string) []DeviceLogEntry
+  
+  // 设备命令日志收集器
+  type DeviceCommandLogCollector func(endTime string) []DeviceLogEntry
+  ~~~
+
+  函数需要返回endTime之前的所有日志，DeviceLogEntry包括日志记录时间、日志类型以及日志内容。当设备收到平台下发日志收集请求后，SDK会自动的上报日志直到平台关闭日志收集或endTime范围内没有任何日志内容。
+
+  日志收集函数的设置如下：
+
+  ~~~go
+  device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
+  
+  // 设置设备状态日志收集器
+  device.SetDeviceStatusLogCollector(func(endTime string) []iot.DeviceLogEntry {
+  	return []iot.DeviceLogEntry{}
+  })
+  device.Init()
+  ~~~
+
+* 设备主动上报日志
+
+  设备可以调用`ReportLogs(logs []DeviceLogEntry) bool` 函数主动上报日志。
 
 
 
