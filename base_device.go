@@ -149,7 +149,7 @@ func (device *baseIotDevice) DisConnect() {
 }
 func (device *baseIotDevice) IsConnected() bool {
 	if device.Client != nil {
-		return device.Client.IsConnected()
+		return device.Client.IsConnectedOpen()
 	}
 
 	return false
