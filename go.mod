@@ -1,4 +1,4 @@
-module github.com/ctlove0523/huaweicloud-iot-device-sdk-go
+module github.com/DarkGodOne/huaweicloud-iot-device-sdk-go
 
 go 1.15
 
