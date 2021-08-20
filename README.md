@@ -605,6 +605,22 @@ device.ReportDeviceInfo("1.0", "2.0")
 
   设备可以调用`ReportLogs(logs []DeviceLogEntry) bool` 函数主动上报日志。
 
+### HTTP协议上报消息和属性
+
+华为云IoT物联网平台支持使用HTTP协议上报消息和属性（该功能目前处于α阶段，尚未对外开放，具体开放时间参考华为云IoT物联网平台公告）。使用HTTP协议上报消息和属性非常简单方便，SDK对接口进行了封装，接口使用的对象和MQTT协议一致。使用HTTP协议的设备接口定义如下：
+
+~~~go
+type HttpDevice interface {
+	SendMessage(message Message) bool
+	ReportProperties(properties DeviceProperties) bool
+}
+~~~
+
+使用样例参考：http_device_samples.go
+
+~~~
+~~~
+
 
 
 ## 报告bugs

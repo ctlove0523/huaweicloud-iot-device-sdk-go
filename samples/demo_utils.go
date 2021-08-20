@@ -17,3 +17,8 @@ func CreateDevice() iot.Device {
 
 	return device
 }
+
+func CreateHttpDevice() iot.HttpDevice{
+	return iot.CreateHttpDevice(deviceId, devicePassword, "https://iot-mqtts.cn-north-4.myhuaweicloud.com:443")
+
+}
