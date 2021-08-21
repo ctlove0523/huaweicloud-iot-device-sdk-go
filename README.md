@@ -619,8 +619,6 @@ type HttpDevice interface {
 
 使用样例参考：http_device_samples.go
 
-~~~
-~~~
 
 
 
