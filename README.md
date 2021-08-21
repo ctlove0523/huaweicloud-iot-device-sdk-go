@@ -20,6 +20,7 @@ huaweicloud-iot-device-sdk-go提供设备接入华为云IoT物联网平台的Go�
 
 * [设备日志收集](#设备日志收集)
 
+* [HTTP协议上报消息和属性](#HTTP协议上报消息和属性)
   
 
 ## 版本说明
