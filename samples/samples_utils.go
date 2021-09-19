@@ -2,7 +2,7 @@ package samples
 
 import iot "github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
 
-const deviceId = "5fdb75cccbfe2f02ce81d4bf_log"
+const deviceId = "611d13360ad1ed028658e089_http_report"
 const devicePassword = "123456789"
 const Server = "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883"
 
@@ -18,7 +18,14 @@ func CreateDevice() iot.Device {
 	return device
 }
 
-func CreateHttpDevice() iot.HttpDevice{
-	return iot.CreateHttpDevice(deviceId, devicePassword, "https://iot-mqtts.cn-north-4.myhuaweicloud.com:443")
+func CreateHttpDevice() iot.HttpDevice {
+	config := iot.HttpDeviceConfig{
+		Id:              deviceId,
+		Password:        devicePassword,
+		Server:          "https://iot-mqtts.cn-north-4.myhuaweicloud.com:443",
+		MaxConnsPerHost: 2,
+		MaxIdleConns:    0,
+	}
+	return iot.CreateHttpDevice(config)
 
 }

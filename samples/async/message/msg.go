@@ -32,8 +32,8 @@ func main() {
 		Id:             uuid.NewV4().String(),
 		Content:        "Hello Huawei IoT Platform",
 	}
-	asyncResult:=device.SendMessage(message)
-	if asyncResult.Wait() && asyncResult.Error()!= nil {
+	asyncResult := device.SendMessage(message)
+	if asyncResult.Wait() && asyncResult.Error() != nil {
 		fmt.Println("async send message failed")
 	} else {
 		fmt.Println("async send message success")

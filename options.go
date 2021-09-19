@@ -298,7 +298,7 @@ type ReportDeviceInfoEventParas struct {
 
 // 上报设备日志请求
 type ReportDeviceLogRequest struct {
-	Services       []ReportDeviceLogServiceEvent `json:"services,omitempty"`
+	Services []ReportDeviceLogServiceEvent `json:"services,omitempty"`
 }
 
 type ReportDeviceLogServiceEvent struct {

@@ -42,7 +42,7 @@ func TestIotDevice_ReportProperties(t *testing.T) {
 		Services: content,
 	}
 
-	reportResult:=device.ReportProperties(services)
+	reportResult := device.ReportProperties(services)
 	if !reportResult {
 		t.Error("device report property failed")
 	}

@@ -15,7 +15,7 @@ func main() {
 	device.Init()
 
 	// 添加用于处理平台下发命令的callback
-	commandProcessResult:=false
+	commandProcessResult := false
 	device.AddCommandHandler(func(command iot.Command) bool {
 		fmt.Println("I get command from platform")
 		commandProcessResult = true

@@ -14,7 +14,6 @@ func (err *DeviceError) Error() string {
 }
 
 type AsyncResult interface {
-
 	Wait() bool
 
 	WaitTimeout(time.Duration) bool
@@ -102,9 +101,9 @@ func (bar *BooleanAsyncResult) completeError(err error) {
 	bar.complete <- struct{}{}
 }
 
-func NewBooleanAsyncResult() *BooleanAsyncResult{
-	asyncResult:=&BooleanAsyncResult{
-		baseAsyncResult:baseAsyncResult{
+func NewBooleanAsyncResult() *BooleanAsyncResult {
+	asyncResult := &BooleanAsyncResult{
+		baseAsyncResult: baseAsyncResult{
 			complete: make(chan struct{}),
 		},
 	}

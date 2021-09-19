@@ -12,4 +12,3 @@ func main() {
 	device.UploadFile("D/software/mqttfx/chentong.txt")
 	device.DownloadFile("D/software/mqttfx/chentong.txt")
 }
-

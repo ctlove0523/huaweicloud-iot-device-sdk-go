@@ -58,6 +58,8 @@ func (device *restyHttpDevice) init() {
 		Password:  hmacSha256(device.Password, "2019120219"),
 	}
 
+	fmt.Println(Interface2JsonString(accessTokenBody))
+
 	response, err := device.client.R().
 		SetBody(accessTokenBody).
 		Post(fmt.Sprintf("%s%s", device.Servers, "/v5/device-auth"))
@@ -69,7 +71,7 @@ func (device *restyHttpDevice) init() {
 	tokenResponse := &accessTokenResponse{}
 	err = json.Unmarshal(response.Body(), tokenResponse)
 	if err != nil {
-		fmt.Println("json unmarshal failed")
+		fmt.Printf("json unmarshal failed %v", err)
 		return
 	}
 
@@ -89,7 +91,7 @@ type accessTokenRequest struct {
 	Password  string `json:"password"`
 }
 
-func CreateHttpDevice(id, password, server string) HttpDevice {
+func CreateHttpDevice(config HttpDeviceConfig) HttpDevice {
 	c := resty.New()
 	c.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	c.SetTimeout(30 * time.Second)
@@ -99,10 +101,18 @@ func CreateHttpDevice(id, password, server string) HttpDevice {
 		return response.StatusCode() == http.StatusForbidden
 	})
 
+	connsPerHost := 10
+	if config.MaxConnsPerHost != 0 {
+		connsPerHost = config.MaxConnsPerHost
+	}
+	c.SetTransport(&http.Transport{
+		MaxConnsPerHost: connsPerHost,
+	})
+
 	device := &restyHttpDevice{
-		Id:       id,
-		Password: password,
-		Servers:  server,
+		Id:       config.Id,
+		Password: config.Password,
+		Servers:  config.Server,
 		client:   c,
 		lock:     sync.RWMutex{},
 	}
@@ -123,4 +133,12 @@ func CreateHttpDevice(id, password, server string) HttpDevice {
 	})
 
 	return device
+}
+
+type HttpDeviceConfig struct {
+	Id              string
+	Password        string
+	Server          string // https://iot-mqtts.cn-north-4.myhuaweicloud.com:443
+	MaxConnsPerHost int
+	MaxIdleConns    int
 }
