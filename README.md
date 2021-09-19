@@ -6,11 +6,11 @@ huaweicloud-iot-device-sdk-go提供设备接入华为云IoT物联网平台的Go�
 
 * [设备连接鉴权](#设备连接鉴权)
 
-* [设备命令](#设备命令)
+* [设备命令](#设备命令) 
 
 * [设备消息](#设备消息)
 
-* [设备属性](#设备属性)
+* [设备属性](#设备属性) 
 
 * [文件上传/下载管理](#文件上传/下载管理)
 
@@ -20,9 +20,14 @@ huaweicloud-iot-device-sdk-go提供设备接入华为云IoT物联网平台的Go�
 
 * [设备日志收集](#设备日志收集)
 
+* [HTTP协议上报消息和属性](#HTTP协议上报消息和属性)
+  
+
 ## 版本说明
 
 当前稳定版本：v1.0.0
+
+
 
 ## 安装和构建
 
@@ -469,7 +474,7 @@ device.Init()
 device.UploadFile("D/software/mqttfx/chentong.txt")
 ~~~
 
-### 网关与子设备管理
+### 网关与子设备管理 
 
 > 当前SDK没有内置mqtt broker模块，对mqtt broker的支持正在开发中
 
@@ -499,6 +504,8 @@ device.SetSubDevicesDeleteHandler(func(devices iot.SubDeviceInfo) {
 device.Init()
 ~~~
 
+
+
 #### 网关同步子设备列表
 
 * 同步所有版本的子设备
@@ -525,6 +532,8 @@ device.Init()
 result:= device.AddSubDevices(deviceInfos) // deviceInfos 的类型为[]DeviceInfo
 ```
 
+
+
 #### 网关删除子设备
 
 ```go
@@ -532,6 +541,8 @@ device := iot.CreateIotDevice("xxx", "xxx", "tls://iot-mqtts.cn-north-4.myhuawei
 device.Init()
 result:= device.DeleteSubDevices(deviceIds) // deviceIds的类型为[]string
 ```
+
+
 
 #### 网关更新子设备状态
 
@@ -541,7 +552,9 @@ device.Init()
 result:= device.UpdateSubDeviceState(subDevicesStatus) //subDevicesStatus的类型SubDevicesStatus
 ```
 
-### 设备信息上报
+
+
+### 设备信息上报 
 
 设备可以向平台上报SDK版本、软固件版本信息，其中SDK的版本信息SDK自动填充
 
@@ -551,6 +564,10 @@ device.Init()
 
 device.ReportDeviceInfo("1.0", "2.0")
 ~~~
+
+
+
+
 
 ### 设备日志收集
 
@@ -605,8 +622,10 @@ type HttpDevice interface {
 
 使用样例参考：http_device_samples.go
 
-~~~
-~~~
+
+
+
+
 
 ## 报告bugs
 
