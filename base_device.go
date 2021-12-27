@@ -60,6 +60,11 @@ const (
 	PlatformEventToDeviceTopic string = "$oc/devices/{device_id}/sys/events/down"
 )
 
+const (
+	AUTH_TYPE_PASSWORD uint8 = 0
+	AUTH_TYPE_X509     uint8 = 1
+)
+
 type DeviceConfig struct {
 	Id                 string
 	Password           string
@@ -117,10 +122,13 @@ func (lcc *LogCollectionConfig) getEndTime() string {
 }
 
 type baseIotDevice struct {
-	Id                             string
-	Password                       string
+	Id                             string // 设备Id，平台又称为deviceId
+	Password                       string // 设备密码
+	AuthType                       uint8  // 鉴权类型，0：密码认证；1：x.509证书认证
+	ServerCaCert                   []byte // 平台CA证书
+	ClientCertFile                 string // 设备证书路径
+	ClientCetKeyFile               string
 	Servers                        string
-	ServerCert                     []byte
 	Client                         mqtt.Client
 	commandHandlers                []CommandHandler
 	messageHandlers                []MessageHandler
@@ -167,18 +175,53 @@ func (device *baseIotDevice) Init() bool {
 	options.SetConnectTimeout(2 * time.Second)
 	if strings.Contains(device.Servers, "tls") || strings.Contains(device.Servers, "ssl") {
 		glog.Infof("server support tls connection")
-		if device.ServerCert != nil {
-			certPool := x509.NewCertPool()
-			certPool.AppendCertsFromPEM(device.ServerCert)
-			options.SetTLSConfig(&tls.Config{
-				RootCAs:            certPool,
-				InsecureSkipVerify: false,
-			})
-		} else {
+
+		// 设备使用x.509证书认证
+		if device.AuthType == AUTH_TYPE_X509 {
+			if len(device.ServerCaCert) == 0 || len(device.ClientCertFile) == 0 || len(device.ClientCetKeyFile) == 0 {
+				glog.Error("device use x.509 auth but not set cert")
+				panic("not set cert")
+			}
+
+			serverCaPool := x509.NewCertPool()
+			serverCaPool.AppendCertsFromPEM(device.ServerCaCert)
+
+			deviceCert, err := tls.LoadX509KeyPair(device.ClientCertFile, device.ClientCetKeyFile)
+			if err != nil {
+				glog.Error("load device cert failed")
+				panic("load device cert failed")
+			}
+			var clientCerts []tls.Certificate
+			clientCerts = append(clientCerts, deviceCert)
+
+			cipherSuites := []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			}
+			tlsConfig := &tls.Config{
+				RootCAs:            serverCaPool,
+				Certificates:       clientCerts,
+				InsecureSkipVerify: true,
+				MaxVersion:         tls.VersionTLS12,
+				MinVersion:         tls.VersionTLS12,
+				CipherSuites:       cipherSuites,
+			}
+			options.SetTLSConfig(tlsConfig)
+
+		}
+
+		if device.AuthType == 0 {
 			options.SetTLSConfig(&tls.Config{
 				InsecureSkipVerify: true,
 			})
 		}
+
 	} else {
 		options.SetTLSConfig(&tls.Config{
 			InsecureSkipVerify: true,
