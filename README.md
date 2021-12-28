@@ -62,6 +62,8 @@ go get github.com/ctlove0523/huaweicloud-iot-device-sdk-go
 
 ### 设备连接鉴权
 
+#### 使用密钥鉴权
+
 1、首先，在华为云IoT平台创建一个设备，设备的信息如下：
 
 设备ID：5fdb75cccbfe2f02ce81d4bf_go-mqtt
@@ -90,6 +92,38 @@ func main() {
 ~~~
 
 > iot-mqtts.cn-north-4.myhuaweicloud.com为华为IoT平台（基础班）在华为云北京四的访问端点，如果你购买了标准版或企业版，请将iot-mqtts.cn-north-4.myhuaweicloud.com更换为对应的MQTT协议接入端点。
+
+#### 使用x.509证书鉴权
+
+1、根据华为云文档创建证书并注册设备
+
+[华为云文档](https://support.huaweicloud.com/bestpractice-iothub/iot_bp_0077.html)
+
+2、使用SDK创建一个使用x.509证书鉴权的设备并初始化
+
+使用x.509证书鉴权需要获取平台的ca证书，并已经创建获取了设备的证书，具体可以参考上面的华为云文档。
+
+~~~go
+caPath := "your ca path"
+certFilePath := "your cert path"
+certKeyFilePath := "your key path"
+
+config := iot.DeviceConfig{
+	Id:              "your device id",
+	Servers:         "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883",
+	AuthType:        iot.AUTH_TYPE_X509,
+	ServerCaPath:    caPath,
+	CertFilePath:    certFilePath,
+	CertKeyFilePath: certKeyFilePath,
+}
+
+device := iot.CreateIotDeviceWitConfig(config)
+
+res := device.Init()
+fmt.Println(res)
+~~~
+
+> 使用x.509证书鉴权必须设置AuthType的值为1（iot.AUTH_TYPE_X509），否则默认使用密码进行鉴权
 
 ### 设备命令
 

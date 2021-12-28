@@ -484,6 +484,7 @@ func CreateIotDevice(id, password, servers string) Device {
 		Password: password,
 		Servers:  servers,
 		Qos:      0,
+		AuthType: AUTH_TYPE_PASSWORD,
 	}
 
 	return CreateIotDeviceWitConfig(config)
@@ -513,10 +514,10 @@ func CreateIotDeviceWitConfig(config DeviceConfig) Device {
 	device.qos = config.Qos
 	device.batchSubDeviceSize = 100
 	device.AuthType = config.AuthType
-	device.ServerCaCert = config.ServerCaCer
-	device.ClientCertFile = config.DeviceCertFile
-	device.ClientCertKeyFile = config.DeviceCertKeyFile
-	
+	device.ServerCaPath = config.ServerCaPath
+	device.CertFilePath = config.CertFilePath
+	device.CertKeyFilePath = config.CertKeyFilePath
+
 
 	result := &iotDevice{
 		base: device,
