@@ -512,6 +512,11 @@ func CreateIotDeviceWitConfig(config DeviceConfig) Device {
 
 	device.qos = config.Qos
 	device.batchSubDeviceSize = 100
+	device.AuthType = config.AuthType
+	device.ServerCaCert = config.ServerCaCer
+	device.ClientCertFile = config.DeviceCertFile
+	device.ClientCertKeyFile = config.DeviceCertKeyFile
+	
 
 	result := &iotDevice{
 		base: device,

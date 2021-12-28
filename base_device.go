@@ -71,6 +71,10 @@ type DeviceConfig struct {
 	Servers            string
 	Qos                byte
 	BatchSubDeviceSize int
+	AuthType           uint8
+	ServerCaCer        []byte
+	DeviceCertFile     string
+	DeviceCertKeyFile  string
 }
 
 type BaseDevice interface {
@@ -127,7 +131,7 @@ type baseIotDevice struct {
 	AuthType                       uint8  // 鉴权类型，0：密码认证；1：x.509证书认证
 	ServerCaCert                   []byte // 平台CA证书
 	ClientCertFile                 string // 设备证书路径
-	ClientCetKeyFile               string
+	ClientCertKeyFile              string
 	Servers                        string
 	Client                         mqtt.Client
 	commandHandlers                []CommandHandler
@@ -178,7 +182,7 @@ func (device *baseIotDevice) Init() bool {
 
 		// 设备使用x.509证书认证
 		if device.AuthType == AUTH_TYPE_X509 {
-			if len(device.ServerCaCert) == 0 || len(device.ClientCertFile) == 0 || len(device.ClientCetKeyFile) == 0 {
+			if len(device.ServerCaCert) == 0 || len(device.ClientCertFile) == 0 || len(device.ClientCertKeyFile) == 0 {
 				glog.Error("device use x.509 auth but not set cert")
 				panic("not set cert")
 			}
@@ -186,7 +190,7 @@ func (device *baseIotDevice) Init() bool {
 			serverCaPool := x509.NewCertPool()
 			serverCaPool.AppendCertsFromPEM(device.ServerCaCert)
 
-			deviceCert, err := tls.LoadX509KeyPair(device.ClientCertFile, device.ClientCetKeyFile)
+			deviceCert, err := tls.LoadX509KeyPair(device.ClientCertFile, device.ClientCertKeyFile)
 			if err != nil {
 				glog.Error("load device cert failed")
 				panic("load device cert failed")
