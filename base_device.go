@@ -177,6 +177,7 @@ func (device *baseIotDevice) Init() bool {
 	options.SetKeepAlive(250 * time.Second)
 	options.SetAutoReconnect(true)
 	options.SetConnectRetry(true)
+	options.SetConnectRetryInterval(10 * time.Second)
 	options.SetConnectTimeout(2 * time.Second)
 	if strings.Contains(device.Servers, "tls") || strings.Contains(device.Servers, "ssl") {
 		glog.Infof("server support tls connection")
