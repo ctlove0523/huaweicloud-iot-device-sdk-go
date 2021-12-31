@@ -58,8 +58,6 @@ func (device *restyHttpDevice) init() {
 		Password:  hmacSha256(device.Password, "2019120219"),
 	}
 
-	fmt.Println(Interface2JsonString(accessTokenBody))
-
 	response, err := device.client.R().
 		SetBody(accessTokenBody).
 		Post(fmt.Sprintf("%s%s", device.Servers, "/v5/device-auth"))
