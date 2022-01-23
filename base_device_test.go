@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-const deviceId = "5fdb75cccbfe2f02ce81d4bf_liqian"
+const deviceId = "611d13360ad1ed028658e089_device_cli"
 const devicePwd = "123456789"
 const server = "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883"
 const qos = 1
