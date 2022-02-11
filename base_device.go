@@ -76,6 +76,7 @@ type DeviceConfig struct {
 	ServerCaPath       string
 	CertFilePath       string
 	CertKeyFilePath    string
+	UseBootstrap       bool // 使用设备引导功能开关，true-使用，false-不使用
 }
 
 type BaseDevice interface {
@@ -152,6 +153,7 @@ type baseIotDevice struct {
 	devicePropertyLogCollector     DevicePropertyLogCollector
 	deviceMessageLogCollector      DeviceMessageLogCollector
 	deviceCommandLogCollector      DeviceCommandLogCollector
+	useBootstrap                   bool
 }
 
 func (device *baseIotDevice) DisConnect() {
@@ -168,9 +170,24 @@ func (device *baseIotDevice) IsConnected() bool {
 }
 
 func (device *baseIotDevice) Init() bool {
-
 	options := mqtt.NewClientOptions()
-	options.AddBroker(device.Servers)
+	if device.useBootstrap {
+		bootstracpClient, err := NewBootstrapClient(device.Id, device.Password)
+		if err != nil {
+			fmt.Printf("create bootstrap client failed,err %s\n", err)
+			return false
+		}
+
+		serverAddress := bootstracpClient.Boot()
+		if len(serverAddress) == 0 {
+			fmt.Println("get server address from bootstrap server failed")
+			return false
+		}
+		options.AddBroker(serverAddress)
+	} else {
+		options.AddBroker(device.Servers)
+	}
+
 	options.SetClientID(assembleClientId(device))
 	options.SetUsername(device.Id)
 	options.SetPassword(hmacSha256(device.Password, timeStamp()))

@@ -61,3 +61,13 @@ func smartFileName(filename string) string {
 
 	return filename
 }
+
+func CreateMqttClientId(deviceId string) string {
+	segments := make([]string, 4)
+	segments[0] = deviceId
+	segments[1] = "0"
+	segments[2] = "0"
+	segments[3] = timeStamp()
+
+	return strings.Join(segments, "_")
+}

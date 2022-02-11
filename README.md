@@ -21,11 +21,11 @@ huaweicloud-iot-device-sdk-go提供设备接入华为云IoT物联网平台的Go�
 * [设备日志收集](#设备日志收集)
 
 * [HTTP协议上报消息和属性](#HTTP协议上报消息和属性)
-  
+* [支持设备发放服务](#使用设备发放服务)
 
 ## 版本说明
 
-当前稳定版本：v2.0.0
+当前稳定版本：v1.0.1
 
 
 
@@ -657,6 +657,49 @@ type HttpDevice interface {
 使用样例参考：http_device_samples.go
 
 
+
+### 使用设备发放服务
+
+有两种方法可以使用设备发放服务动态获取设备连接平台的地址
+
+方法1：通过设备发放服务获取设备连接平台的地址，然后创建设备
+
+~~~golang
+id := "device_id"
+pwd := "your device password"
+
+bootstrapClient, err := iot.NewBootstrapClient(id, pwd)
+if err != nil {
+	fmt.Printf("create bs client failed")
+	return
+}
+
+server := bootstrapClient.Boot()
+if len(server) == 0 {
+	fmt.Println("get server address failed")
+	return
+}
+
+device := iot.CreateIotDevice(id, pwd, server)
+device.Init()
+~~~
+
+方法2：在创建设备时启动设备发放服务
+
+~~~go
+id := "device_id"
+pwd := "your device password"
+config := iot.DeviceConfig{
+	Id:           id,
+	Password:     pwd,
+	UseBootstrap: true,
+}
+device := iot.CreateIotDeviceWitConfig(config)
+initRes := device.Init()
+fmt.Println(initRes)
+
+time.Sleep(1 * time.Minute)
+~~~
 
 
 

@@ -518,6 +518,7 @@ func CreateIotDeviceWitConfig(config DeviceConfig) Device {
 	device.CertFilePath = config.CertFilePath
 	device.CertKeyFilePath = config.CertKeyFilePath
 
+	device.useBootstrap = config.UseBootstrap
 
 	result := &iotDevice{
 		base: device,
