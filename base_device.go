@@ -69,6 +69,7 @@ const (
 type DeviceConfig struct {
 	Id                 string
 	Password           string
+	VerifyTimestamp    bool
 	Servers            string
 	Qos                byte
 	BatchSubDeviceSize int
@@ -130,6 +131,7 @@ func (lcc *LogCollectionConfig) getEndTime() string {
 type baseIotDevice struct {
 	Id                             string // 设备Id，平台又称为deviceId
 	Password                       string // 设备密码
+	VerifyTimestamp                bool
 	AuthType                       uint8  // 鉴权类型，0：密码认证；1：x.509证书认证
 	ServerCaPath                   string // 平台CA证书
 	CertFilePath                   string // 设备证书路径
@@ -320,7 +322,11 @@ func assembleClientId(device *baseIotDevice) string {
 	segments := make([]string, 4)
 	segments[0] = device.Id
 	segments[1] = "0"
-	segments[2] = "0"
+	if device.VerifyTimestamp {
+		segments[2] = "1"
+	} else {
+		segments[2] = "0"
+	}
 	segments[3] = timeStamp()
 
 	return strings.Join(segments, "_")
