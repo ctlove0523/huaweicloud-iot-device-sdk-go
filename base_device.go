@@ -14,56 +14,56 @@ import (
 )
 
 const (
-	// 平台下发消息topic
+	// MessageDownTopic 平台下发消息topic
 	MessageDownTopic string = "$oc/devices/{device_id}/sys/messages/down"
 
-	// 设备上报消息topic
+	// MessageUpTopic 设备上报消息topic
 	MessageUpTopic string = "$oc/devices/{device_id}/sys/messages/up"
 
-	// 平台下发命令topic
+	// CommandDownTopic 平台下发命令topic
 	CommandDownTopic string = "$oc/devices/{device_id}/sys/commands/#"
 
-	// 设备响应平台命令
+	// CommandResponseTopic 设备响应平台命令
 	CommandResponseTopic string = "$oc/devices/{device_id}/sys/commands/response/request_id="
 
-	// 设备上报属性
+	// PropertiesUpTopic 设备上报属性
 	PropertiesUpTopic string = "$oc/devices/{device_id}/sys/properties/report"
 
-	//平台设置属性topic
+	// PropertiesSetRequestTopic 平台设置属性topic
 	PropertiesSetRequestTopic string = "$oc/devices/{device_id}/sys/properties/set/#"
 
-	// 设备响应平台属性设置topic
+	// PropertiesSetResponseTopic 设备响应平台属性设置topic
 	PropertiesSetResponseTopic string = "$oc/devices/{device_id}/sys/properties/set/response/request_id="
 
-	// 平台查询设备属性
+	// PropertiesQueryRequestTopic 平台查询设备属性
 	PropertiesQueryRequestTopic string = "$oc/devices/{device_id}/sys/properties/get/#"
 
-	// 设备响应平台属性查询
+	// PropertiesQueryResponseTopic 设备响应平台属性查询
 	PropertiesQueryResponseTopic string = "$oc/devices/{device_id}/sys/properties/get/response/request_id="
 
-	// 设备侧获取平台的设备影子数据
+	// DeviceShadowQueryRequestTopic 设备侧获取平台的设备影子数据
 	DeviceShadowQueryRequestTopic string = "$oc/devices/{device_id}/sys/shadow/get/request_id="
 
-	// 设备侧响应获取平台设备影子
+	// DeviceShadowQueryResponseTopic 设备侧响应获取平台设备影子
 	DeviceShadowQueryResponseTopic string = "$oc/devices/{device_id}/sys/shadow/get/response/#"
 
-	// 网关批量上报子设备属性
+	// GatewayBatchReportSubDeviceTopic 网关批量上报子设备属性
 	GatewayBatchReportSubDeviceTopic string = "$oc/devices/{device_id}/sys/gateway/sub_devices/properties/report"
 
-	// 平台下发文件上传和下载URL
+	// FileActionUpload 平台下发文件上传和下载URL
 	FileActionUpload   string = "upload"
 	FileActionDownload string = "download"
 
-	// 设备或网关向平台发送请求
+	// DeviceToPlatformTopic 设备或网关向平台发送请求
 	DeviceToPlatformTopic string = "$oc/devices/{device_id}/sys/events/up"
 
-	// 平台向设备下发事件topic
+	// PlatformEventToDeviceTopic 平台向设备下发事件topic
 	PlatformEventToDeviceTopic string = "$oc/devices/{device_id}/sys/events/down"
 )
 
 const (
-	AUTH_TYPE_PASSWORD uint8 = 0
-	AUTH_TYPE_X509     uint8 = 1
+	AuthTypePassword uint8 = 0
+	AuthTypeX509     uint8 = 1
 )
 
 type DeviceConfig struct {
@@ -138,7 +138,7 @@ type baseIotDevice struct {
 	CertKeyFilePath                string // 设备证书key路径
 	Servers                        string
 	Client                         mqtt.Client
-	commandHandlers                []CommandHandler
+	commandHandler                 CommandHandler
 	messageHandlers                []MessageHandler
 	propertiesSetHandlers          []DevicePropertiesSetHandler
 	propertyQueryHandler           DevicePropertyQueryHandler
@@ -201,7 +201,7 @@ func (device *baseIotDevice) Init() bool {
 		glog.Infof("server support tls connection")
 
 		// 设备使用x.509证书认证
-		if device.AuthType == AUTH_TYPE_X509 {
+		if device.AuthType == AuthTypeX509 {
 			if len(device.ServerCaPath) == 0 || len(device.CertFilePath) == 0 || len(device.CertKeyFilePath) == 0 {
 				glog.Error("device use x.509 auth but not set cert")
 				panic("not set cert")
@@ -282,7 +282,7 @@ func (device *baseIotDevice) AddCommandHandler(handler CommandHandler) {
 		return
 	}
 
-	device.commandHandlers = append(device.commandHandlers, handler)
+	device.commandHandler = handler
 }
 func (device *baseIotDevice) AddPropertiesSetHandler(handler DevicePropertiesSetHandler) {
 	if handler == nil {
@@ -350,24 +350,22 @@ func (device *baseIotDevice) createCommandMqttHandler() func(client mqtt.Client,
 				glog.Warningf("unmarshal platform command failed,device id = %s，message = %s", device.Id, message)
 			}
 
-			handleFlag := true
-			for _, handler := range device.commandHandlers {
-				handleFlag = handleFlag && handler(*command)
-			}
+			flag, response := device.commandHandler(*command)
 			var res string
-			if handleFlag {
+			if flag {
 				glog.Infof("device %s handle command success", device.Id)
 				res = Interface2JsonString(CommandResponse{
 					ResultCode: 0,
+					Paras:      response,
 				})
 			} else {
 				glog.Warningf("device %s handle command failed", device.Id)
 				res = Interface2JsonString(CommandResponse{
 					ResultCode: 1,
+					Paras:      response,
 				})
 			}
-			if token := device.Client.Publish(formatTopic(CommandResponseTopic, device.Id)+getTopicRequestId(message.Topic()), 1, false, res);
-				token.Wait() && token.Error() != nil {
+			if token := device.Client.Publish(formatTopic(CommandResponseTopic, device.Id)+getTopicRequestId(message.Topic()), 1, false, res); token.Wait() && token.Error() != nil {
 				glog.Infof("device %s send command response failed", device.Id)
 			}
 		}()
@@ -404,8 +402,7 @@ func (device *baseIotDevice) createPropertiesSetMqttHandler() func(client mqtt.C
 				response.ResultDesc = "Set properties failed."
 				res = Interface2JsonString(response)
 			}
-			if token := device.Client.Publish(formatTopic(PropertiesSetResponseTopic, device.Id)+getTopicRequestId(message.Topic()), device.qos, false, res);
-				token.Wait() && token.Error() != nil {
+			if token := device.Client.Publish(formatTopic(PropertiesSetResponseTopic, device.Id)+getTopicRequestId(message.Topic()), device.qos, false, res); token.Wait() && token.Error() != nil {
 				glog.Warningf("unmarshal platform properties set request failed,device id = %s，message = %s", device.Id, message)
 			}
 		}()
@@ -441,8 +438,7 @@ func (device *baseIotDevice) createPropertiesQueryMqttHandler() func(client mqtt
 
 			queryResult := device.propertyQueryHandler(*propertiesQueryRequest)
 			responseToPlatform := Interface2JsonString(queryResult)
-			if token := device.Client.Publish(formatTopic(PropertiesQueryResponseTopic, device.Id)+getTopicRequestId(message.Topic()), device.qos, false, responseToPlatform);
-				token.Wait() && token.Error() != nil {
+			if token := device.Client.Publish(formatTopic(PropertiesQueryResponseTopic, device.Id)+getTopicRequestId(message.Topic()), device.qos, false, responseToPlatform); token.Wait() && token.Error() != nil {
 				glog.Warningf("device %s send properties query response failed.", device.Id)
 			}
 		}()
@@ -466,48 +462,42 @@ func (device *baseIotDevice) createPropertiesQueryResponseMqttHandler() func(cli
 func (device *baseIotDevice) subscribeDefaultTopics() {
 	// 订阅平台命令下发topic
 	topic := formatTopic(CommandDownTopic, device.Id)
-	if token := device.Client.Subscribe(topic, device.qos, device.createCommandMqttHandler());
-		token.Wait() && token.Error() != nil {
+	if token := device.Client.Subscribe(topic, device.qos, device.createCommandMqttHandler()); token.Wait() && token.Error() != nil {
 		glog.Warningf("device %s subscribe platform send command topic %s failed", device.Id, topic)
 		panic(0)
 	}
 
 	// 订阅平台消息下发的topic
 	topic = formatTopic(MessageDownTopic, device.Id)
-	if token := device.Client.Subscribe(topic, device.qos, device.createMessageMqttHandler());
-		token.Wait() && token.Error() != nil {
+	if token := device.Client.Subscribe(topic, device.qos, device.createMessageMqttHandler()); token.Wait() && token.Error() != nil {
 		glog.Warningf("device % subscribe platform send message topic %s failed.", device.Id, topic)
 		panic(0)
 	}
 
 	// 订阅平台设置设备属性的topic
 	topic = formatTopic(PropertiesSetRequestTopic, device.Id)
-	if token := device.Client.Subscribe(topic, device.qos, device.createPropertiesSetMqttHandler());
-		token.Wait() && token.Error() != nil {
+	if token := device.Client.Subscribe(topic, device.qos, device.createPropertiesSetMqttHandler()); token.Wait() && token.Error() != nil {
 		glog.Warningf("device %s subscribe platform set properties topic %s failed", device.Id, topic)
 		panic(0)
 	}
 
 	// 订阅平台查询设备属性的topic
 	topic = formatTopic(PropertiesQueryRequestTopic, device.Id)
-	if token := device.Client.Subscribe(topic, device.qos, device.createPropertiesQueryMqttHandler())
-		token.Wait() && token.Error() != nil {
+	if token := device.Client.Subscribe(topic, device.qos, device.createPropertiesQueryMqttHandler()); token.Wait() && token.Error() != nil {
 		glog.Warningf("device %s subscriber platform query device properties topic failed %s", device.Id, topic)
 		panic(0)
 	}
 
 	// 订阅查询设备影子响应的topic
 	topic = formatTopic(DeviceShadowQueryResponseTopic, device.Id)
-	if token := device.Client.Subscribe(topic, device.qos, device.createPropertiesQueryResponseMqttHandler());
-		token.Wait() && token.Error() != nil {
+	if token := device.Client.Subscribe(topic, device.qos, device.createPropertiesQueryResponseMqttHandler()); token.Wait() && token.Error() != nil {
 		glog.Warningf("device %s subscribe query device shadow topic %s failed", device.Id, topic)
 		panic(0)
 	}
 
 	// 订阅平台下发到设备的事件
 	topic = formatTopic(PlatformEventToDeviceTopic, device.Id)
-	if token := device.Client.Subscribe(topic, device.qos, device.handlePlatformToDeviceData());
-		token.Wait() && token.Error() != nil {
+	if token := device.Client.Subscribe(topic, device.qos, device.handlePlatformToDeviceData()); token.Wait() && token.Error() != nil {
 		glog.Warningf("device %s subscribe query device shadow topic %s failed", device.Id, topic)
 		panic(0)
 	}
@@ -596,7 +586,7 @@ func (device *baseIotDevice) handlePlatformToDeviceData() func(client mqtt.Clien
 
 func (device *baseIotDevice) reportLogsWorker() {
 	go func() {
-		for ; ; {
+		for {
 			if !device.lcc.getLogCollectSwitch() {
 				break
 			}
@@ -611,7 +601,7 @@ func (device *baseIotDevice) reportLogsWorker() {
 	}()
 
 	go func() {
-		for ; ; {
+		for {
 			if !device.lcc.getLogCollectSwitch() {
 				break
 			}
@@ -626,7 +616,7 @@ func (device *baseIotDevice) reportLogsWorker() {
 	}()
 
 	go func() {
-		for ; ; {
+		for {
 			if !device.lcc.getLogCollectSwitch() {
 				break
 			}
@@ -641,7 +631,7 @@ func (device *baseIotDevice) reportLogsWorker() {
 	}()
 
 	go func() {
-		for ; ; {
+		for {
 			if !device.lcc.getLogCollectSwitch() {
 				break
 			}
@@ -711,8 +701,7 @@ func (device *baseIotDevice) upgradeDevice(upgradeType byte, upgradeInfo *Upgrad
 		Services:       []DataEntry{dataEntry},
 	}
 
-	if token := device.Client.Publish(formatTopic(DeviceToPlatformTopic, device.Id), device.qos, false, Interface2JsonString(data));
-		token.Wait() && token.Error() != nil {
+	if token := device.Client.Publish(formatTopic(DeviceToPlatformTopic, device.Id), device.qos, false, Interface2JsonString(data)); token.Wait() && token.Error() != nil {
 		glog.Errorf("device %s upgrade failed,type %d", device.Id, upgradeType)
 	}
 }

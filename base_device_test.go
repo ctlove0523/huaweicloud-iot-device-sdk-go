@@ -57,7 +57,7 @@ func TestBaseIotDevice_AddCommandHandler(t *testing.T) {
 		return true
 	})
 
-	if len(device.commandHandlers) == 0 {
+	if len(device.commandHandler) == 0 {
 		t.Errorf("add command handlers failed")
 	}
 }
@@ -117,7 +117,7 @@ func createBaseIotDevice() baseIotDevice {
 	device.Password = devicePwd
 	device.Servers = server
 	device.messageHandlers = []MessageHandler{}
-	device.commandHandlers = []CommandHandler{}
+	device.commandHandler = []CommandHandler{}
 
 	device.fileUrls = map[string]string{}
 

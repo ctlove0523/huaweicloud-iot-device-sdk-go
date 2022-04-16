@@ -16,10 +16,12 @@ func main() {
 
 	// 添加用于处理平台下发命令的callback
 	commandProcessResult := false
-	device.AddCommandHandler(func(command iot.Command) bool {
+	device.AddCommandHandler(func(command iot.Command) (bool, interface{}) {
 		fmt.Println("I get command from platform")
 		commandProcessResult = true
-		return true
+		return true, map[string]interface{}{
+			"cost_time": 12,
+		}
 	})
 	time.Sleep(10 * time.Minute)
 }

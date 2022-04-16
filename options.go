@@ -7,7 +7,7 @@ type SubDevicesAddHandler func(devices SubDeviceInfo)
 type SubDevicesDeleteHandler func(devices SubDeviceInfo)
 
 // 处理平台下发的命令
-type CommandHandler func(Command) bool
+type CommandHandler func(Command) (bool, interface{})
 
 // 设备消息
 type MessageHandler func(message Message) bool
